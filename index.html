@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forage demo: one balance, three payees</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+} }
+</script>
+<style>
+  :root {
+    --ink:#2a2238; --body:#4b4260; --muted:#7f7596; --rule:rgba(42,34,56,.12);
+    --glass:rgba(255,255,255,.42); --glass-b:rgba(255,255,255,.7);
+    --forage:#6D28D9; --supplier:#0B5563; --buyer:#C2410C; --app:#4B5563;
+    --serif:"Instrument Serif", Georgia, serif; --text:"Newsreader", Georgia, serif;
+    --ui:"Inter Tight", "Helvetica Neue", Arial, sans-serif; --mono:"JetBrains Mono", Menlo, monospace;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; color:var(--body); font:15px/1.5 var(--text); -webkit-font-smoothing:antialiased;
+    background:linear-gradient(180deg,#d6caf1 0%,#eed8e7 40%,#f8ddcc 65%,#d3dbf0 100%) fixed; }
+  main { max-width:1120px; margin:0 auto; padding:28px 20px 56px; }
+  .mark { font:italic 400 40px/1 var(--serif); letter-spacing:-.5px; color:var(--ink); }
+  .tag { font:500 10px var(--mono); letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-top:8px; }
+  .lede { font:400 26px/1.15 var(--serif); color:var(--ink); margin:16px 0 0; letter-spacing:-.01em; }
+  .lede i, .caption b i, .legend b i { font-style:italic; color:var(--forage); }
+  .sub { color:var(--muted); margin:8px 0 0; font-size:14px; font-style:italic; }
+
+  .eyebrow { display:flex; align-items:center; gap:10px; font:500 10px var(--mono); letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
+  .eyebrow .num { width:18px; height:18px; border-radius:50%; border:1px solid currentColor; display:grid; place-items:center; font-size:9px; letter-spacing:0; }
+  .eyebrow::after { content:""; width:40px; height:1px; background:linear-gradient(90deg, currentColor, transparent); opacity:.6; }
+
+  .glass { background:var(--glass); backdrop-filter:blur(18px) saturate(1.3); -webkit-backdrop-filter:blur(18px) saturate(1.3); border:1px solid var(--glass-b); border-radius:22px; box-shadow:0 24px 60px -30px rgba(42,34,56,.4), inset 0 1px 0 rgba(255,255,255,.7); }
+
+  .bar { display:flex; align-items:center; margin:22px 0 0; }
+  .steps { display:flex; align-items:center; flex:1; min-width:0; }
+  .step { display:flex; align-items:center; gap:8px; font:500 10px var(--mono); letter-spacing:.14em; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
+  .dot { width:8px; height:8px; border-radius:50%; border:1px solid rgba(42,34,56,.35); background:rgba(255,255,255,.5); flex:0 0 auto; transition:transform .3s, box-shadow .3s; }
+  .step.done { color:var(--ink); } .step.done .dot { background:var(--ink); border-color:var(--ink); }
+  .step.on { color:var(--forage); } .step.on .dot { background:var(--forage); border-color:var(--forage); transform:scale(1.4); box-shadow:0 0 0 5px rgba(109,40,217,.14), 0 0 18px rgba(109,40,217,.5); }
+  .line { flex:1; height:1px; background:rgba(42,34,56,.15); margin:0 10px; min-width:12px; }
+
+  .caption { margin:18px 0 0; min-height:92px; }
+  .caption b { display:block; font:400 26px/1.15 var(--serif); color:var(--ink); margin-top:10px; letter-spacing:-.01em; }
+  .caption p { margin:8px 0 0; max-width:760px; }
+  .caption .act { display:flex; align-items:center; gap:8px; margin-top:12px; font:500 13px var(--ui); color:var(--forage); }
+  .caption .act::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--forage); box-shadow:0 0 10px var(--forage); animation:beat 1.4s ease-in-out infinite; flex:0 0 auto; }
+  .caption .act.warn { color:var(--buyer); } .caption .act.warn::before { background:var(--buyer); box-shadow:0 0 10px var(--buyer); }
+  .caption .act:empty { display:none; }
+  @keyframes beat { 0%,100% { transform:scale(.7); opacity:.5; } 50% { transform:scale(1.15); opacity:1; } }
+  @media (prefers-reduced-motion:reduce) { .caption .act::before { animation:none; } }
+  .controls { display:flex; gap:10px; margin-top:16px; }
+  button { font:500 14px var(--ui); border-radius:999px; padding:11px 20px; cursor:pointer; color:var(--ink); border:1px solid rgba(255,255,255,.85); background:rgba(255,255,255,.55); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); box-shadow:0 10px 24px -14px rgba(42,34,56,.45), inset 0 1px 0 #fff; transition:transform .2s, box-shadow .2s, background .2s; }
+  button:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 14px 28px -14px rgba(42,34,56,.55), inset 0 1px 0 #fff; }
+  #go { background:rgba(42,34,56,.82); color:#fff; border-color:rgba(255,255,255,.35); }
+  #go:hover:not(:disabled) { background:rgba(109,40,217,.85); }
+  button:disabled { opacity:.4; cursor:default; }
+
+  .stage { display:grid; grid-template-columns:minmax(0,1.9fr) minmax(0,1fr); gap:24px; margin-top:24px; align-items:start; }
+  .card { padding:18px 20px; min-width:0; }
+
+  /* The 3D map. One label pill per party, placed over the canvas by projecting its position. */
+  .map { position:relative; aspect-ratio:16/10; overflow:hidden; border-radius:22px; }
+  .map canvas { position:absolute; inset:0; width:100%; height:100%; display:block; cursor:grab; }
+  .map canvas:active { cursor:grabbing; }
+  .map.hover canvas { cursor:pointer; }
+  #labels { position:absolute; inset:0; pointer-events:none; }
+  .lbl { position:absolute; left:0; top:0; display:flex; align-items:center; gap:8px; padding:6px 12px; background:rgba(255,255,255,.5); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.8); border-radius:999px; box-shadow:0 10px 24px -14px rgba(42,34,56,.45), inset 0 1px 0 #fff; white-space:nowrap; line-height:1.2; will-change:transform; font-family:var(--ui); }
+  .lbl b { font-size:12px; font-weight:600; color:var(--c); }
+  .lbl .bal { font-size:13px; font-weight:500; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .lbl .delta { position:absolute; left:50%; top:100%; transform:translate(-50%, 6px); font-size:12px; font-style:normal; font-weight:600; color:var(--c); opacity:0; transition:opacity .35s; font-variant-numeric:tabular-nums; }
+  .lbl .delta.show { opacity:1; }
+  .lbl .desc { display:none; position:absolute; left:50%; top:100%; transform:translate(-50%, 8px); font:13px/1.45 var(--text); color:var(--body); background:rgba(255,255,255,.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border:1px solid rgba(255,255,255,.85); border-radius:14px; padding:9px 12px; white-space:normal; width:230px; text-align:left; box-shadow:0 16px 32px -14px rgba(42,34,56,.45); }
+  .lbl .desc small { display:block; font:500 9px var(--mono); letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
+  .lbl.hot .desc { display:block; }
+  .lbl.hot .delta { opacity:0; }
+  .hint { margin:10px 0 0; font:400 11px var(--mono); letter-spacing:.04em; color:var(--muted); }
+  /* No WebGL: the same pills, laid out as a plain grid with their roles shown. */
+  .map.nogl { aspect-ratio:auto; }
+  .map.nogl canvas, .map.nogl + .hint { display:none; }
+  .map.nogl #labels { position:static; display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .map.nogl .lbl { position:static; transform:none !important; display:block; border-radius:14px; white-space:normal; }
+  .map.nogl .lbl b, .map.nogl .lbl .bal { display:block; }
+  .map.nogl .lbl .desc, .map.nogl .lbl .delta { display:block; position:static; transform:none; opacity:1; width:auto; box-shadow:none; border:0; padding:4px 0 0; background:none; }
+
+  .receipt h3 { margin:0; font:400 20px var(--serif); color:var(--ink); }
+  .receipt .hint2 { font-size:13px; font-style:italic; color:var(--muted); margin:2px 0 12px; }
+  .rows { border:1px solid rgba(255,255,255,.8); background:rgba(255,255,255,.35); border-radius:14px; padding:4px 12px; font:13px var(--ui); }
+  .row { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid rgba(42,34,56,.07); }
+  .row:last-child { border-bottom:0; }
+  .row span:first-child { color:var(--muted); }
+  .row span:last-child { color:var(--ink); font-weight:500; text-align:right; }
+  .big { font:400 28px/1 var(--serif); font-variant-numeric:tabular-nums; }
+  .stamp { margin-top:10px; font:500 10px var(--mono); letter-spacing:.14em; text-transform:uppercase; color:var(--supplier); min-height:20px; }
+  .log { list-style:none; padding:0; margin:12px 0 0; font:13px var(--ui); }
+  .log li { padding:6px 0; border-top:1px solid rgba(42,34,56,.07); }
+  .log .q { color:var(--ink); font-weight:500; }
+  .log .r { color:var(--muted); }
+
+  .split { margin-top:24px; opacity:0; transition:opacity .6s; }
+  .split.show { opacity:1; }
+  .split .eyebrow { margin-bottom:12px; }
+  .splitbar { display:flex; height:42px; border-radius:999px; overflow:hidden; font:500 13px var(--ui); color:#fff; border:1px solid rgba(255,255,255,.7); box-shadow:0 14px 30px -14px rgba(42,34,56,.45); }
+  .splitbar div { display:flex; align-items:center; padding:0 14px; white-space:nowrap; overflow:hidden; }
+  .legend { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-top:12px; font-size:14px; }
+  .legend b { display:block; font:400 24px/1.1 var(--serif); }
+
+  /* The receipt card tilts toward the mouse and flips per new signature; the split bar rises into view. */
+  .stage { perspective:1400px; }
+  .card { transform-style:preserve-3d; transition:transform .25s ease-out, box-shadow .25s; will-change:transform; }
+  .rows { transform-origin:center; backface-visibility:hidden; }
+  .rows.flip { animation:flip .6s ease-in-out; }
+  @keyframes flip { 0% { transform:perspective(800px) rotateY(0); } 50% { transform:perspective(800px) rotateY(90deg); } 100% { transform:perspective(800px) rotateY(0); } }
+  .split { perspective:900px; }
+  .splitbar { transform-origin:bottom; }
+  .split.show .splitbar { animation:rise .9s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes rise { from { transform:rotateX(70deg); opacity:0; } to { transform:rotateX(0); opacity:1; } }
+  @media (prefers-reduced-motion:reduce) { .rows.flip, .split.show .splitbar { animation:none; } .card { transition:none; } }
+
+  footer { margin-top:32px; font:400 11px var(--mono); letter-spacing:.02em; color:var(--muted); border-top:1px solid var(--rule); padding-top:12px; }
+  @media (max-width:800px) {
+    .stage { grid-template-columns:minmax(0,1fr); }
+    .hud { padding:20px; }
+    .step span { display:none; } .step.on span { display:inline; }
+    .legend b { font-size:18px; }
+    .map { aspect-ratio:4/3; }
+    .lbl { padding:3px 8px; gap:5px; } .lbl b { font-size:10px; } .lbl .bal { font-size:11px; } .lbl .delta { font-size:10px; }
+    .lbl .desc { display:none !important; }
+    .hint { display:none; }
+  }
+  /* Desktop: the 3D scene fills the window; story, receipt and split float over it as glass. */
+  @media (min-width:801px) {
+    html, body { height:100%; overflow:hidden; }
+    main { max-width:none; padding:0; }
+    .stage { display:block; margin:0; perspective:none; } /* perspective would trap the fixed children */
+    .map { position:fixed; inset:0; aspect-ratio:auto; border-radius:0; z-index:0; }
+    .hud, .receipt, .split, .hint, footer, .bar { position:fixed; z-index:2; }
+    .hud { top:20px; left:20px; width:min(420px, 32vw); padding:22px 24px; max-height:calc(100vh - 90px); overflow:auto; }
+    .mark { font-size:34px; }
+    .lede { font-size:22px; margin-top:14px; } .sub { display:none; }
+    .caption { min-height:0; margin-top:18px; } .caption b { font-size:22px; } .caption p { font-size:14px; }
+    .bar { right:22px; top:50%; transform:translateY(-50%); margin:0; z-index:3; }
+    .steps { flex-direction:column; align-items:flex-end; gap:18px; }
+    .step span { display:none; }
+    .line { display:none; }
+    .receipt { top:20px; right:56px; width:300px; max-height:calc(100vh - 40px); overflow:auto; }
+    .split { left:calc(min(420px, 32vw) + 40px); right:376px; bottom:20px; margin:0; padding:16px 18px; pointer-events:none; }
+    .split.show { pointer-events:auto; }
+    .legend { font-size:13px; } .legend b { font-size:20px; }
+    .hint { left:20px; bottom:34px; margin:0; max-width:min(420px, 32vw); }
+    footer { left:20px; bottom:12px; margin:0; padding:0; border:0; max-width:calc(min(420px, 32vw)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <section class="hud glass">
+  <header>
+    <div class="mark">forage</div>
+    <div class="tag">The open market for AI tools</div>
+    <p class="lede">One balance pays for <i>every</i> AI tool. Each settlement pays three parties: the AI company, Forage, and the app that brought the buyer.</p>
+    <p class="sub">Interactive demo with simulated USDC. Press Next to step through, or Play to watch it run.</p>
+  </header>
+
+  <div class="caption">
+    <div class="eyebrow"><span class="num" id="capNum">I</span><span id="capEyebrow"></span></div>
+    <b id="capTitle"></b><p id="capBody"></p><p class="act" id="act" aria-live="polite"></p>
+  </div>
+  <div class="controls"><button id="go"></button><button id="play">Play all</button></div>
+  </section>
+
+  <div class="bar"><div class="steps" id="steps"></div></div>
+
+  <div class="stage">
+    <div class="map" id="map" role="img" aria-label="Money flow between Mia's agent, Scout, SearchCo, the Forage vault and Forage">
+      <canvas id="scene"></canvas>
+      <div id="labels"></div>
+    </div>
+    <p class="hint" id="hint">Do the step in purple, or press Play all. Drag empty space to rotate.</p>
+    <div class="card receipt glass">
+      <h3>Mia's latest signature</h3>
+      <p class="hint2">Not a payment. A promise SearchCo can cash in later.</p>
+      <div class="rows">
+        <div class="row"><span>Signed by</span><span>Mia's agent</span></div>
+        <div class="row"><span>Pay to</span><span>SearchCo</span></div>
+        <div class="row"><span>App cut</span><span>Scout, 5%</span></div>
+        <div class="row"><span>Signature</span><span id="sigNo">none yet</span></div>
+        <div class="row"><span>Running total</span><span class="big" id="total">$0.00</span></div>
+      </div>
+      <div class="stamp" id="stamp"></div>
+      <ul class="log" id="log"></ul>
+    </div>
+  </div>
+
+  <section class="split glass" id="split">
+    <div class="eyebrow"><span class="num">V</span><span>The split</span></div>
+    <div class="splitbar">
+      <div style="flex:91;background:rgba(11,85,99,.72)">SearchCo 91%</div>
+      <div style="flex:4;background:rgba(109,40,217,.7)"></div>
+      <div style="flex:5;background:rgba(75,85,99,.7)"></div>
+    </div>
+    <div class="legend">
+      <div style="color:var(--supplier)"><b id="lgS"></b>SearchCo keeps 91% for doing the work</div>
+      <div style="color:var(--forage)"><b id="lgF"></b>Forage takes a 4% fee</div>
+      <div style="color:var(--app)"><b id="lgA"></b>Scout earns 5% for bringing Mia</div>
+    </div>
+  </section>
+
+  <footer>Simulated. Amounts in USDC with 6 decimals, as on Base. Names are illustrative. The app's cut is part of what Mia signs, so nobody can swap it out later.</footer>
+</main>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+
+// Money in micro-USDC (6 decimals), like the real token, so the split has no float dust.
+const PRICE = 10000;                 // $0.01 per search
+const FEE_BPS = 400, APP_BPS = 500;  // Forage 4%, Scout 5%, SearchCo keeps the rest
+const DEPOSIT = 1000000;             // $1.00
+const COIN = 50000;                  // one pearl in the vault stack is $0.05
+
+const SEARCHES = [
+  ["battery recycling startups 2026", "Redwood Materials, Li-Cycle, Ascend Elements, 14 more"],
+  ["lithium recovery rate by method", "Hydrometallurgy 95%+, pyrometallurgy 50-70%"],
+  ["EU battery passport deadline", "Required for EV batteries from Feb 2027"],
+  ["cost per kWh of recycled cathode", "Roughly 30% below newly mined material"],
+  ["top investors in battery recycling", "Breakthrough Energy, Goldman Sachs, Fifth Wall"],
+];
+
+// Back row: the call path, floating above the water. Front row: where the money goes.
+// tint is the pastel pearl colour; color is the brand colour used for trails and orbs. lab is the label anchor offset.
+const NODES = {
+  mia:      { pos:[-2.9, 1.05, -1.3], color:0xC2410C, tint:0xF4B48E, css:"var(--buyer)",    name:"Mia's agent",  role:"Buyer", lab:[0, 0.85, 0],
+              desc:"Holds one USDC balance in the vault. Signs a running total owed to SearchCo instead of paying per call." },
+  scout:    { pos:[0, 1.05, -1.3],    color:0x4B5563, tint:0xC3C8D4, css:"var(--app)",      name:"Scout",        role:"App Mia uses", lab:[0, 1.12, 0],
+              desc:"Routes each search. Its 5% is signed into the session, so it earns on every call Mia makes." },
+  searchco: { pos:[2.75, 1.05, -1.3],  color:0x0B5563, tint:0x9ADCE0, css:"var(--supplier)", name:"SearchCo",     role:"AI company, sells search", lab:[0, 0.95, 0],
+              desc:"Serves the search and keeps 91%. Cashes in Mia's latest signature whenever it likes." },
+  vault:    { pos:[0, 0, 1.5],        color:0x2a2238, tint:0x6B5A8E, css:"var(--ink)",      name:"Forage vault", role:"Mia's locked balance", lab:[0, 0, 1.2], below:true,
+              desc:"One balance on Base that pays for any tool on Forage. Mia can withdraw what she does not spend." },
+  forage:   { pos:[2.35, 0.7, 2.0],   color:0x6D28D9, tint:0xC9B0F7, css:"var(--forage)",   name:"Forage",       role:"Protocol", lab:[0, 0.95, 0],
+              desc:"Takes a 4% fee on each settlement. Mints $FORAGE weekly on recognized usage." },
+};
+
+const STEPS = ["Fund", "Search 5 times", "Settle", "Done"];
+const ROMAN = ["I", "II", "III", "IV", "V"];
+
+function split(total) {
+  const forage = total * FEE_BPS / 10000;
+  const app = total * APP_BPS / 10000;
+  const supplier = total - forage - app;
+  console.assert(supplier + forage + app === total && Number.isInteger(forage + app), "split must add up");
+  return { supplier, forage, app };
+}
+
+const usd = u => "$" + (u / 1e6).toFixed(u % 10000 ? 4 : 2);
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const small = matchMedia("(max-width: 800px)").matches;
+const map = $("map"), labelsEl = $("labels"), canvas = $("scene");
+// Headline copy marks its italic word with *stars*.
+const em = t => t.replace(/\*(.+?)\*/g, "<i>$1</i>");
+
+// Labels: one glass pill per party (name, balance, a delta that fades in, hover text with the role).
+const nodeEls = {};
+for (const [k, n] of Object.entries(NODES)) {
+  const el = document.createElement("div");
+  el.className = "lbl"; el.style.setProperty("--c", n.css);
+  el.innerHTML = `<b></b><strong class="bal"></strong><em class="delta"></em><i class="desc"><small></small></i>`;
+  el.querySelector("b").textContent = n.name;
+  el.querySelector(".desc small").textContent = n.role; el.querySelector(".desc").append(n.desc);
+  labelsEl.appendChild(el);
+  nodeEls[k] = { el, bal:el.querySelector(".bal"), delta:el.querySelector(".delta"), timer:0 };
+}
+
+// 3D scene. If WebGL is missing, gl stays null and the labels fall back to a plain grid.
+let gl = null;
+try { gl = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:"high-performance" }); } catch (e) { map.classList.add("nogl"); }
+
+const V = a => new THREE.Vector3(...a);
+const _m = new THREE.Matrix4(), _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _s = new THREE.Vector3(1, 1, 1), _c = new THREE.Color(), _v = new THREE.Vector3();
+const UP = new THREE.Vector3(0, 1, 0), X = new THREE.Vector3(1, 0, 0), WHITE = new THREE.Color(0xffffff);
+let scene, camera, controls, nodes = {}, coins, ledger, lotus, W = 1, H = 1;
+let lever, leverArm, leverGrip, pulse, pickables = [], pulsed = null, uniforms = null;
+let leverT = 0, leverTo = 0, drag = null;
+const flights = [];
+const LOOK = new THREE.Vector3(0, 0.55, 0);
+let focus = LOOK.clone();
+const par = { x:0, y:0 };
+let VAULT_TOP = 0.6; const TUB = 48, COIN_S = new THREE.Vector3(0.65, 0.65, 0.65);
+
+// Pearl: iridescent, clearcoated, slightly metallic. Every solid thing in the scene uses it with a tint.
+const pearl = (tint, o = {}) => new THREE.MeshPhysicalMaterial({ color:tint, roughness:0.2, metalness:0.12, clearcoat:1, clearcoatRoughness:0.12,
+  iridescence:1, iridescenceIOR:1.35, iridescenceThicknessRange:[120, 540], sheen:0.5, sheenColor:0xffffff, sheenRoughness:0.6, envMapIntensity:1.1, ...o });
+const chrome = () => pearl(0xF6F1FF, { metalness:0.9, roughness:0.08, iridescence:0.6 });
+
+// Sky and sea share one GLSL sky function: lilac above, peach at the horizon, a warm sun low on the right, fbm clouds.
+const SKY_GLSL = `
+  uniform float t;
+  const vec3 SUN = normalize(vec3(0.62, 0.2, -0.76));
+  float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float noise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y); }
+  float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < OCT; i++) { v += a * noise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; } return v; }
+  vec3 sky(vec3 d) {
+    float h = clamp(d.y, -1.0, 1.0);
+    vec3 top = vec3(0.68, 0.60, 0.90), mid = vec3(0.90, 0.80, 0.93), hor = vec3(0.99, 0.87, 0.80);
+    vec3 c = mix(hor, mid, smoothstep(0.0, 0.22, h));
+    c = mix(c, top, smoothstep(0.22, 0.85, h));
+    c = mix(c, vec3(0.93, 0.82, 0.86), smoothstep(0.0, -0.3, h));
+    float s = max(dot(d, SUN), 0.0);
+    c += vec3(1.0, 0.80, 0.62) * (pow(s, 5.0) * 0.32 + pow(s, 48.0) * 0.55);
+    if (h > 0.0) {
+      vec2 uv = d.xz / (h + 0.18) * 1.1 + vec2(t * 0.012, t * 0.004);
+      float n = fbm(uv * 1.4);
+      float cl = smoothstep(0.42, 0.74, n);
+      float fade = smoothstep(0.0, 0.1, h) * (1.0 - smoothstep(0.45, 0.95, h));
+      c = mix(c, vec3(1.0, 0.975, 0.985), cl * fade * 0.8);
+    }
+    return c;
+  }`;
+
+if (gl) {
+  gl.setPixelRatio(Math.min(devicePixelRatio, small ? 1.5 : 2));
+  gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.0;
+  gl.outputColorSpace = THREE.SRGBColorSpace;
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(40, 1.8, 0.1, 1000);
+  camera.position.set(0, 4.6, 9.6);
+  uniforms = { t:{ value:0 }, camPos:{ value:camera.position } };
+  const defines = { OCT: small ? 3 : 5 };
+
+  // Sky dome. Rendered once into a PMREM so every pearl reflects the same pastel sky.
+  const skyMat = new THREE.ShaderMaterial({ uniforms, defines, side:THREE.BackSide, depthWrite:false,
+    vertexShader:`varying vec3 vW; void main() { vW = (modelMatrix * vec4(position, 1.0)).xyz; gl_Position = projectionMatrix * viewMatrix * vec4(vW, 1.0); }`,
+    fragmentShader:`varying vec3 vW; ${SKY_GLSL} void main() { gl_FragColor = vec4(sky(normalize(vW)), 1.0); }` });
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(400, 48, 24), skyMat);
+  scene.add(dome);
+  const pmrem = new THREE.PMREMGenerator(gl);
+  const envScene = new THREE.Scene(); envScene.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), skyMat));
+  scene.environment = pmrem.fromScene(envScene, 0.02).texture; pmrem.dispose();
+
+  // Sea: a plane that reflects the sky function through rippled normals, fading into the horizon with distance.
+  const seaMat = new THREE.ShaderMaterial({ uniforms, defines,
+    vertexShader:`varying vec3 vW; void main() { vW = (modelMatrix * vec4(position, 1.0)).xyz; gl_Position = projectionMatrix * viewMatrix * vec4(vW, 1.0); }`,
+    fragmentShader:`varying vec3 vW; uniform vec3 camPos; uniform sampler2D skyTex; ${SKY_GLSL}
+      #ifdef HDR
+      // Equirectangular lookup into the sky photo (linear HDR), same orientation as scene.background.
+      vec3 photo(vec3 d) { vec2 uv = vec2(atan(d.z, d.x) * 0.15915494 + 0.5, asin(clamp(d.y, -1.0, 1.0)) * 0.31830989 + 0.5); return texture2D(skyTex, uv).rgb; }
+      #define SKY(d) photo(d)
+      #else
+      #define SKY(d) sky(d)
+      #endif
+      void main() {
+        vec3 p = vW;
+        float dist = length(p.xz - camPos.xz);
+        float amp = 0.2 / (1.0 + dist * 0.08);
+        float a1 = p.x * 1.4 + t * 0.9, a2 = p.z * 2.1 - t * 0.7, a3 = (p.x + p.z) * 0.8 + t * 0.5;
+        float dx = cos(a1) * 1.4 * 0.5 + cos(a3) * 0.8 * 0.25;
+        float dz = cos(a2) * 2.1 * 0.3 + cos(a3) * 0.8 * 0.25;
+        vec3 n = normalize(vec3(-dx * amp, 1.0, -dz * amp));
+        vec3 v = normalize(p - camPos);
+        vec3 r = reflect(v, n); r.y = abs(r.y) + 0.02;
+        vec3 refl = SKY(r);
+        #ifdef HDR
+        vec3 milk = vec3(0.50, 0.46, 0.76);
+        #else
+        vec3 milk = vec3(0.74, 0.72, 0.91);
+        #endif
+        float fres = pow(1.0 - max(dot(-v, n), 0.0), 2.0);
+        vec3 c = mix(milk, refl, 0.35 + 0.6 * fres);
+        c += vec3(1.0, 0.92, 0.84) * pow(max(dot(r, SUN), 0.0), 60.0) * 0.7;
+        vec2 hd = normalize(p.xz - camPos.xz);
+        c = mix(c, SKY(vec3(hd.x, 0.01, hd.y)), smoothstep(18.0, 90.0, dist));
+        gl_FragColor = vec4(c, 1.0);
+        #ifdef HDR
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+        #endif
+      }` });
+  seaMat.uniforms.skyTex = { value:null };
+  const sea = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), seaMat);
+  sea.rotation.x = -Math.PI / 2; scene.add(sea);
+
+  new RGBELoader().load("assets/sky.hdr", tex => {
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    scene.background = tex; scene.backgroundIntensity = 1.05;
+    const pm = new THREE.PMREMGenerator(gl); scene.environment = pm.fromEquirectangular(tex).texture; pm.dispose();
+    seaMat.uniforms.skyTex.value = tex; seaMat.defines.HDR = 1; seaMat.needsUpdate = true;
+    scene.remove(dome);
+  });
+  scene.add(new THREE.HemisphereLight(0xEADCFF, 0xF8DCCB, 0.7));
+  const sun = new THREE.DirectionalLight(0xFFDCC2, 1.5); sun.position.set(6, 5, -5); scene.add(sun);
+  const fill = new THREE.DirectionalLight(0xD9CCFF, 0.5); fill.position.set(-5, 3, 6); scene.add(fill);
+
+  // Glitter: points drifting in the air, twinkling. Positions and size live in the shader; no per-frame buffer writes.
+  const N = small ? 160 : 420, pos = new Float32Array(N * 3), seed = new Float32Array(N);
+  for (let i = 0; i < N; i++) { pos[i * 3] = (Math.random() - 0.5) * 26; pos[i * 3 + 1] = 0.2 + Math.random() * 7; pos[i * 3 + 2] = -12 + Math.random() * 20; seed[i] = Math.random(); }
+  const gg = new THREE.BufferGeometry(); gg.setAttribute("position", new THREE.BufferAttribute(pos, 3)); gg.setAttribute("seed", new THREE.BufferAttribute(seed, 1));
+  const glitter = new THREE.Points(gg, new THREE.ShaderMaterial({ uniforms:{ t:uniforms.t, dpr:{ value:gl.getPixelRatio() } }, transparent:true, depthWrite:false,
+    vertexShader:`attribute float seed; uniform float t, dpr; varying float vA;
+      void main() { vec3 p = position + vec3(sin(t * 0.25 + seed * 6.3) * 0.4, sin(t * 0.4 + seed * 12.6) * 0.3, 0.0);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv;
+        gl_PointSize = (1.5 + 3.5 * fract(seed * 7.1)) * dpr * (22.0 / -mv.z);
+        vA = 0.35 + 0.65 * pow(0.5 + 0.5 * sin(t * 2.2 + seed * 40.0), 3.0); }`,
+    fragmentShader:`varying float vA; void main() { float d = length(gl_PointCoord - 0.5); gl_FragColor = vec4(1.0, 0.99, 1.0, smoothstep(0.5, 0.08, d) * vA); }` }));
+  scene.add(glitter);
+
+  // Lotus: six petals and a heart, merged into one geometry, instanced around the market and rocked by the water.
+  const petal = new THREE.SphereGeometry(0.14, 12, 8); petal.scale(1, 0.35, 1.7);
+  const parts = [];
+  for (let i = 0; i < 6; i++) { const g = petal.clone(); g.translate(0, 0, 0.12); g.rotateX(-0.35); g.rotateY(i * Math.PI / 3); parts.push(g); }
+  const heart = new THREE.SphereGeometry(0.08, 12, 8); heart.scale(1, 0.6, 1); heart.translate(0, 0.04, 0); parts.push(heart);
+  lotus = new THREE.InstancedMesh(mergeGeometries(parts), pearl(0xFFF6F2, { roughness:0.35, metalness:0, iridescence:0.4, sheenColor:0xFFC9D6 }), 14);
+  lotus.userData.at = [];
+  for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2, r = 5.5 + (i % 3) * 1.6; lotus.userData.at.push([Math.cos(a) * r * 1.3, Math.sin(a) * r * 0.7 - 2.5, Math.random() * 6.3]); }
+  scene.add(lotus);
+
+  // A soft white glow behind each party: one radial gradient drawn on a canvas, shared by every sprite.
+  const hc = document.createElement("canvas"); hc.width = hc.height = 128;
+  const hx = hc.getContext("2d"), hg = hx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  hg.addColorStop(0, "rgba(255,255,255,0.9)"); hg.addColorStop(0.35, "rgba(255,255,255,0.35)"); hg.addColorStop(1, "rgba(255,255,255,0)");
+  hx.fillStyle = hg; hx.fillRect(0, 0, 128, 128);
+  const haloMat = new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(hc), transparent:true, depthWrite:false, opacity:0.55, toneMapped:false });
+  // Contact shadow: a radial gradient disc on the water, darkest in the middle.
+  const sc = document.createElement("canvas"); sc.width = sc.height = 128;
+  const sx = sc.getContext("2d"), sg = sx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  sg.addColorStop(0, "rgba(40,30,70,0.45)"); sg.addColorStop(1, "rgba(40,30,70,0)"); sx.fillStyle = sg; sx.fillRect(0, 0, 128, 128);
+  const shadowMat = new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(sc), transparent:true, depthWrite:false, toneMapped:false });
+  const halo = size => { const sp = new THREE.Sprite(haloMat); sp.scale.setScalar(size); return sp; };
+
+  // A party: a group with one body mesh (the one that glows) plus trim and a halo, all meshes pickable under one key.
+  const party = (key, body, ...trim) => {
+    const g = new THREE.Group(); g.position.copy(V(NODES[key].pos)); g.userData.key = key; g.userData.body = body;
+    g.add(body, ...trim, halo(key === "vault" ? 4.5 : 2.6));
+    const sh = new THREE.Mesh(new THREE.CircleGeometry(key === "vault" ? 1.3 : 0.7, 40), shadowMat);
+    sh.rotation.x = -Math.PI / 2; sh.position.set(NODES[key].pos[0], 0.025, NODES[key].pos[2]); sh.renderOrder = 1; scene.add(sh);
+    g.traverse(o => { if (o.isMesh) { o.userData.key = key; pickables.push(o); } });
+    scene.add(g); nodes[key] = g; return g;
+  };
+  const star = (points, outer, inner, depth, bevel) => {
+    const sh = new THREE.Shape();
+    for (let i = 0; i < points * 2; i++) { const r = i % 2 ? inner : outer, a = i / points * Math.PI - Math.PI / 2; sh[i ? "lineTo" : "moveTo"](Math.cos(a) * r, Math.sin(a) * r); }
+    sh.closePath();
+    const g = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled:true, bevelThickness:bevel, bevelSize:bevel * 0.9, bevelSegments:7, curveSegments:4 });
+    g.center(); return g;
+  };
+  // Mia: a soft five point spark. Scout: a halo. SearchCo: a faceted crystal. Vault: a pearl chest. Forage: an inflated four point star.
+  party("mia", new THREE.Mesh(star(5, 0.48, 0.25, 0.14, 0.12), pearl(NODES.mia.tint))).rotation.set(-0.2, 0.5, 0.1);
+  party("scout", new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.17, 32, 96), pearl(NODES.scout.tint))).rotation.set(0.9, 0.2, 0);
+  const crystal = mergeGeometries([new THREE.CylinderGeometry(0.42, 0.42, 0.5, 6), new THREE.CylinderGeometry(0, 0.42, 0.55, 6).translate(0, 0.525, 0), new THREE.CylinderGeometry(0.42, 0, 0.55, 6).translate(0, -0.525, 0)]);
+  party("searchco", new THREE.Mesh(crystal, pearl(NODES.searchco.tint, { flatShading:true, roughness:0.1 }))).rotation.set(0.15, 0.4, -0.2);
+  party("forage", new THREE.Mesh(star(4, 0.5, 0.17, 0.18, 0.16), pearl(NODES.forage.tint))).rotation.set(0, -0.5, 0.1);
+  const chest = new THREE.Mesh(new RoundedBoxGeometry(1.9, VAULT_TOP, 1.5, 5, 0.22), pearl(NODES.vault.tint, { roughness:0.25 })); chest.position.y = VAULT_TOP / 2 - 0.06;
+  const clasp = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.035, 16, 40), chrome()); clasp.position.set(0, VAULT_TOP * 0.45 - 0.06, 0.76);
+  party("vault", chest, clasp);
+
+  // Each model is scaled so its largest side is `size`, centred on the party (or seated on the water for the vault),
+  // turned to face the camera, then swapped in for the pearl placeholder, including picking and the pulse glow.
+  const MODELS = {
+    mia:      { file:"classic_laptop/classic_laptop_1k.gltf", size:1.6, yaw:0 },
+    scout:    { file:"Lantern_01/Lantern_01_1k.gltf",         size:1.45, yaw:0 },
+    searchco: { file:"power_box_01/power_box_01_1k.gltf",     size:1.6,  yaw:-0.35 },
+    forage:   { file:"CashRegister_01/CashRegister_01_1k.gltf", size:1.35, yaw:-0.6 },
+    vault:    { file:"treasure_chest/treasure_chest_1k.gltf", size:1.7,  yaw:0, seat:true },
+  };
+  const loader = new GLTFLoader();
+  for (const [key, m] of Object.entries(MODELS)) loader.load("assets/" + m.file, gltf => {
+    const model = gltf.scene, g = nodes[key];
+    model.rotation.y = m.yaw;
+    const box = new THREE.Box3().setFromObject(model), size = box.getSize(new THREE.Vector3());
+    model.scale.setScalar(m.size / Math.max(size.x, size.y, size.z));
+    box.setFromObject(model); const c = box.getCenter(new THREE.Vector3());
+    model.position.set(-c.x, m.seat ? -box.min.y : -c.y, -c.z);
+    if (m.seat) { VAULT_TOP = box.max.y - box.min.y; render3d(); }
+    model.traverse(o => { if (o.isMesh) { o.userData.key = key; o.material = o.material.clone(); o.material.envMapIntensity = 1.2; pickables.push(o); } });
+    for (const o of [...g.children]) if (o.isMesh) g.remove(o); // placeholder body and trim; the halo sprite stays
+    pickables = pickables.filter(o => o.userData.key !== key || model.getObjectById(o.id));
+    g.rotation.set(0, 0, 0); g.userData.yaw = 0; g.add(model); g.userData.body = model;
+  }, undefined, () => {});
+
+  // The vault holds Mia's balance as a stack of $0.05 pearls. Settlement takes pearls off the top.
+  const coinGeo = new THREE.SphereGeometry(0.3, 32, 16); coinGeo.scale(1, 0.2, 1);
+  coins = new THREE.InstancedMesh(coinGeo, pearl(0xFFD9C2, { roughness:0.12 }), 24);
+  coins.count = 0; scene.add(coins);
+
+  // The ledger: one glassy card per signature, stacked at the front-left, Mia's side. Only the latest is plum; replaced ones go pale.
+  ledger = new THREE.InstancedMesh(new RoundedBoxGeometry(0.95, 0.045, 0.62, 2, 0.02), pearl(0xffffff, { roughness:0.08, iridescence:0.7, transparent:true, opacity:0.88 }), SEARCHES.length);
+  ledger.count = 0; ledger.position.set(-2.5, 0.02, 1.7); scene.add(ledger);
+  for (let i = 0; i < SEARCHES.length; i++) ledger.setColorAt(i, _c.setHex(0xffffff)); // create the colour buffer before the first compile
+
+  // Settlement lever on the vault's left side. Pulling it toward you settles; the arm leans back at rest.
+  lever = new THREE.Group(); lever.position.set(NODES.vault.pos[0] - 1.3, 0, NODES.vault.pos[2] + 0.25);
+  const base = new THREE.Mesh(new RoundedBoxGeometry(0.6, 0.5, 0.5, 4, 0.14), pearl(NODES.vault.tint, { roughness:0.25 })); base.position.y = 0.19;
+  const boss = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.06, 32), chrome()); boss.position.y = 0.46;
+  leverArm = new THREE.Group(); leverArm.position.y = 0.46; leverArm.rotation.x = -0.4;
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.9, 24), chrome()); arm.position.y = 0.45;
+  leverGrip = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.24, 8, 24), pearl(NODES.forage.tint)); leverGrip.position.y = 0.94; leverGrip.rotation.z = Math.PI / 2;
+  leverArm.add(arm, leverGrip); lever.add(base, boss, leverArm); scene.add(lever);
+  for (const m of [base, boss, arm, leverGrip]) { m.userData.key = "lever"; pickables.push(m); }
+
+  // A ring on the water pulses under whatever the investor should touch next.
+  pulse = new THREE.Mesh(new THREE.RingGeometry(0.8, 0.88, 72), new THREE.MeshBasicMaterial({ color:0x8B5CF6, transparent:true, opacity:0, depthWrite:false, toneMapped:false }));
+  pulse.rotation.x = -Math.PI / 2; pulse.position.y = 0.03; scene.add(pulse);
+
+  controls = new OrbitControls(camera, canvas);
+  Object.assign(controls, { enableZoom:false, enablePan:false, enableDamping:true, dampingFactor:0.08, rotateSpeed:0.55,
+    minPolarAngle:0.8, maxPolarAngle:1.32, minAzimuthAngle:-0.75, maxAzimuthAngle:0.75 });
+  controls.target.copy(LOOK);
+  canvas.style.touchAction = "pan-y"; // horizontal drag rotates, vertical swipe still scrolls the page on phones
+
+  const frameCamera = () => {
+    W = map.clientWidth; H = map.clientHeight; gl.setSize(W, H, false); camera.aspect = W / H;
+    // Full screen: a wider lens fits the market into the gap between the panels, and the view shifts to centre it there.
+    const full = getComputedStyle(map).position === "fixed";
+    camera.fov = full ? 57 : W < 500 ? 42 : 38;
+    const l = full ? document.querySelector(".hud").getBoundingClientRect().right : 0;
+    const r = full ? document.querySelector(".receipt").getBoundingClientRect().left : W;
+    const shift = full ? (l + r) / 2 - W / 2 : 0;
+    if (shift) camera.setViewOffset(W, H, -shift, 0, W, H); else camera.clearViewOffset();
+    camera.updateProjectionMatrix();
+  };
+  new ResizeObserver(frameCamera).observe(map);
+  addEventListener("resize", frameCamera);
+
+  // Hover shows a party's role; a click (not a drag) moves the camera's focus to it, or back to the whole market.
+  const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
+  let hover = null, down = null;
+  const pick = e => { const r = canvas.getBoundingClientRect(); ptr.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height * 2 - 1)); ray.setFromCamera(ptr, camera); const h = ray.intersectObjects(pickables, false)[0]; return h ? h.object.userData.key : null; };
+  const floorAt = (e, y) => { const r = canvas.getBoundingClientRect(); ptr.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height * 2 - 1)); ray.setFromCamera(ptr, camera); return ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), new THREE.Vector3()); };
+  // Capture phase on the map runs before OrbitControls' own pointerdown, so an orb or lever drag never rotates the scene.
+  map.addEventListener("pointerdown", e => {
+    if (e.target !== canvas) return;
+    down = [e.clientX, e.clientY];
+    const k = pick(e), t = target();
+    if (!t || k !== t) return;
+    if (t === "mia" && s.searches === 0) {
+      const coin = orb(NODES.mia.color);
+      coin.position.copy(spot("mia")); scene.add(coin);
+      drag = { kind:"coin", coin };
+    } else if (t === "lever") drag = { kind:"lever", y:e.clientY };
+    if (drag) { controls.enabled = false; canvas.setPointerCapture(e.pointerId); }
+  }, true);
+  canvas.addEventListener("pointermove", e => {
+    if (!drag) { par.x = e.clientX / innerWidth - 0.5; par.y = e.clientY / innerHeight - 0.5; }
+    if (drag?.kind === "coin") { const p = floorAt(e, 0.9); if (p) drag.coin.position.set(p.x, 0.9, p.z); return; }
+    if (drag?.kind === "lever") { leverT = Math.min(1, Math.max(0, (e.clientY - drag.y) / 70)); return; }
+    const k = pick(e);
+    if (k === hover) return;
+    if (hover) { nodeEls[hover]?.el.classList.remove("hot"); glow(hover, 0); }
+    hover = k;
+    if (hover) { nodeEls[hover]?.el.classList.add("hot"); glow(hover, 0x3b2a66, 0.25); }
+    map.classList.toggle("hover", !!hover);
+  });
+  canvas.addEventListener("pointerleave", () => { if (hover) { nodeEls[hover]?.el.classList.remove("hot"); glow(hover, 0); hover = null; map.classList.remove("hover"); } });
+  canvas.addEventListener("pointerdown", e => { down = [e.clientX, e.clientY]; });
+  canvas.addEventListener("pointerup", e => {
+    const moved = down ? Math.hypot(e.clientX - down[0], e.clientY - down[1]) : 99;
+    down = null;
+    if (drag) {
+      const d = drag; drag = null; controls.enabled = true;
+      if (d.kind === "coin") {
+        const p = d.coin.position, sc = NODES.searchco.pos;
+        if (Math.hypot(p.x - sc[0], p.z - sc[2]) < 1.2) { scene.remove(d.coin); next(); }
+        else {
+          if (moved > 5) nudge("Almost. Drop the orb on SearchCo, the teal crystal.");
+          else nudge("Drag it: hold Mia's agent, move to SearchCo, let go.");
+          flight(d.coin, p.clone(), spot("mia"), 420, 0.3);
+        }
+      } else if (leverT > 0.5 || moved < 6) { leverTo = 1; next(); }
+      else nudge("Pull the lever further toward you.");
+      return;
+    }
+    if (moved > 5) return;
+    const k = pick(e), t = target();
+    if (k && k === t) { next(); return; }
+    if (k === "lever") return;
+    focus = k ? V(NODES[k].pos).setY(0.5) : LOOK.clone();
+    $("hint").textContent = k ? `Focused on ${NODES[k].name}. Click empty space to see the whole market.` : "Drag to rotate. Hover a party for its role. Click one to focus.";
+  });
+}
+
+function place(el, v, dy, below) {
+  _v.copy(v).project(camera);
+  const x = (_v.x + 1) / 2 * W, y = (1 - _v.y) / 2 * H;
+  el.style.transform = `translate(-50%, ${below ? "0" : "-100%"}) translate(${x.toFixed(1)}px, ${(y + dy).toFixed(1)}px)`;
+}
+function placeLabels() {
+  for (const [k, n] of Object.entries(NODES)) place(nodeEls[k].el, _p.copy(nodes[k].position).add(_v.set(...n.lab)), n.below ? 10 : -6, n.below);
+}
+
+// Idle: parties bob and turn a little, lotus rock on the water, glitter drifts. Flights move orbs along an arc.
+let time = 0, running = false;
+const clock = new THREE.Clock();
+const ease = k => k < .5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+function placeLotus() {
+  for (let i = 0; i < lotus.count; i++) {
+    const [x, z, ph] = lotus.userData.at[i];
+    _q.setFromAxisAngle(UP, ph).multiply(_q2.setFromAxisAngle(X, reduced ? 0 : Math.sin(time * 0.7 + ph) * 0.06));
+    lotus.setMatrixAt(i, _m.compose(_p.set(x, 0.02 + (reduced ? 0 : Math.sin(time * 0.8 + ph) * 0.03), z), _q, _s));
+  }
+  lotus.instanceMatrix.needsUpdate = true; _q.identity();
+}
+function frame() {
+  if (!running) return;
+  requestAnimationFrame(frame);
+  const dt = Math.min(clock.getDelta(), 0.05); time += dt;
+  uniforms.t.value = reduced ? 0 : time;
+  if (!reduced) {
+    for (const [k, m] of Object.entries(nodes)) {
+      if (k === "vault") { m.position.y = Math.sin(time * 0.8) * 0.02; m.rotation.z = Math.sin(time * 0.6) * 0.012; continue; }
+      m.position.y = NODES[k].pos[1] + Math.sin(time * 0.9 + k.length) * 0.08;
+      if (m.userData.yaw === 0) m.rotation.y = Math.sin(time * 0.5 + k.length) * 0.22;
+      else m.rotation.y += dt * (k === "forage" ? 0.25 : 0.12);
+    }
+    placeLotus();
+  } else if (!lotus.userData.placed) { lotus.userData.placed = true; placeLotus(); }
+  const now = performance.now();
+  for (let i = flights.length - 1; i >= 0; i--) {
+    const f = flights[i], k = (now - f.t0) / f.ms, e = ease(Math.min(1, k));
+    if (!f.landed) f.curve.getPoint(e, f.coin.position);
+    if (f.trail) {
+      const a = Math.floor(ease(Math.min(1, Math.max(0, k - 0.3))) * TUB) * 48, b = Math.floor(e * TUB) * 48;
+      for (const t of f.trail.children) t.geometry.setDrawRange(a, Math.max(0, b - a));
+    }
+    if (k >= 1 && !f.landed) { f.landed = true; scene.remove(f.coin); f.coin.geometry.dispose(); f.coin.material.dispose(); f.res(); }
+    if (k >= (f.trail ? 1.3 : 1)) {
+      if (f.trail) { scene.remove(f.trail); for (const t of f.trail.children) { t.geometry.dispose(); t.material.dispose(); } }
+      flights.splice(i, 1);
+    }
+  }
+  const t = target();
+  if (t !== pulsed) { glow(pulsed, 0); pulsed = t; }
+  if (t) {
+    const at = t === "lever" ? lever.position : V(NODES[t].pos), ph = reduced ? 0.4 : (time * 0.9) % 1;
+    pulse.position.set(at.x, 0.03, at.z);
+    pulse.scale.setScalar((t === "lever" ? 0.55 : t === "vault" ? 1.35 : 0.95) * (1 + ph * 0.35));
+    pulse.material.opacity = 0.7 * (1 - ph);
+    glow(t, 0x6D28D9, reduced ? 0.2 : 0.14 + 0.1 * Math.sin(time * 5));
+  } else pulse.material.opacity = 0;
+  if (drag?.kind !== "lever") leverT += (leverTo - leverT) * Math.min(1, dt * (reduced ? 60 : 8));
+  leverArm.rotation.x = -0.4 + leverT * 1.5;
+  // Slight parallax: the camera's aim drifts a little toward the mouse.
+  _v.copy(focus); if (!reduced) { _v.x += par.x * 0.22; _v.y -= par.y * 0.14; }
+  controls.target.lerp(_v, Math.min(1, dt * 4));
+  controls.update();
+  gl.render(scene, camera);
+  placeLabels();
+}
+function start() { if (running || !gl) return; running = true; clock.getDelta(); requestAnimationFrame(frame); }
+function stop() { running = false; }
+let visible = false;
+new IntersectionObserver(([e]) => { visible = e.isIntersecting; visible && !document.hidden ? start() : stop(); }).observe(map);
+document.addEventListener("visibilitychange", () => document.hidden ? stop() : visible && start());
+
+// Where a flight leaves from or lands: just above the party, or on top of the vault's pearl stack.
+function spot(k) {
+  if (k === "vault") return V(NODES.vault.pos).setY(VAULT_TOP + Math.ceil(coins.count / 4) * 0.065 + 0.15);
+  return nodes[k].position.clone().add(_v.set(0, 0.2, 0));
+}
+
+// A glowing pearl orb in a party's colour, the thing that travels.
+function orb(color, r = 0.12) {
+  return new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), pearl(_c.setHex(color).lerp(WHITE, 0.45).getHex(), { emissive:color, emissiveIntensity:0.35, roughness:0.1 }));
+}
+
+// An orb follows an arc from A to B. With a colour, a light trail in that colour follows it and fades out after landing. Resolves on landing.
+function flight(coin, A, B, ms, hop, color) {
+  const mid = A.clone().lerp(B, 0.5); mid.y = 2 * (Math.max(A.y, B.y) + hop) - (A.y + B.y) / 2;
+  const curve = new THREE.QuadraticBezierCurve3(A, mid, B);
+  let trail = null;
+  if (color != null) {
+    trail = new THREE.Group();
+    const c = _c.setHex(color).lerp(WHITE, 0.3).getHex();
+    for (const [r, o] of [[0.04, 0.95], [0.13, 0.28]]) trail.add(new THREE.Mesh(new THREE.TubeGeometry(curve, TUB, r, 8, false), new THREE.MeshBasicMaterial({ color:c, transparent:true, opacity:o, depthWrite:false, toneMapped:false })));
+    scene.add(trail);
+  }
+  return new Promise(res => flights.push({ coin, curve, trail, t0:performance.now(), ms, res, landed:false }));
+}
+
+// An orb hops from a to b in an arc with a trail. r sets the orb size.
+function fly(a, b, color, ms = 650, r = 8) {
+  if (!gl) return sleep(ms / 2);
+  if (reduced) return sleep(80);
+  const coin = orb(color, 0.09 + r * 0.008); scene.add(coin);
+  return flight(coin, spot(a), spot(b), ms, 0.9 + r * 0.06, color);
+}
+
+// What the investor should touch now. Nothing pulses while orbs are flying or Play all is running.
+function target() {
+  if (!gl || !s || busy || playing || drag?.kind === "coin") return drag?.kind === "lever" ? "lever" : null;
+  return s.step === 0 ? "vault" : s.step === 1 ? "mia" : s.step === 2 ? "lever" : null;
+}
+const pulseMesh = k => !k ? null : k === "lever" ? leverGrip : nodes[k].userData.body;
+function glow(k, hex, i = 1) { pulseMesh(k)?.traverse(o => { if (o.isMesh && o.material.emissive) { o.material.emissive.setHex(hex); o.material.emissiveIntensity = o.material.map ? i * 0.35 : i; } }); }
+function nudge(text) { const a = $("act"); a.textContent = text; a.classList.add("warn"); }
+
+// The receipt card leans toward the mouse, a few degrees at most.
+if (!reduced) {
+  const card = document.querySelector(".card.receipt");
+  card.addEventListener("mousemove", e => {
+    const r = card.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+    card.style.transform = `rotateX(${-y * 6}deg) rotateY(${x * 6}deg) translateZ(8px)`;
+  });
+  card.addEventListener("mouseleave", () => { card.style.transform = ""; });
+}
+
+function flipReceipt() {
+  const rows = document.querySelector(".rows");
+  rows.classList.remove("flip"); void rows.offsetWidth; rows.classList.add("flip");
+}
+
+let s, busy = false, playing = false;
+function reset() {
+  s = { step:0, searches:0, total:0, bal:{ mia:DEPOSIT, scout:0, searchco:0, vault:0, forage:0 }, delta:{} };
+  leverTo = 0;
+  $("log").innerHTML = "";
+  $("split").classList.remove("show");
+  render();
+}
+
+function move(changes) {
+  s.delta = {};
+  for (const [k, v] of Object.entries(changes)) { s.bal[k] += v; s.delta[k] = v; }
+}
+
+async function next() {
+  if (busy) return;
+  busy = true; setButtons();
+  if (s.step === 0) {
+    await fly("mia", "vault", NODES.mia.color, 800, 10);
+    move({ mia:-DEPOSIT, vault:DEPOSIT });
+    s.step = 1;
+  } else if (s.step === 1) {
+    s.delta = {}; render();
+    await fly("mia", "scout", NODES.mia.color, 450, 6);
+    await fly("scout", "searchco", NODES.mia.color, 450, 6);
+    await fly("searchco", "mia", NODES.searchco.color, 650, 6);
+    const [q, r] = SEARCHES[s.searches];
+    s.searches++; s.total += PRICE;
+    flipReceipt();
+    $("log").insertAdjacentHTML("afterbegin", `<li><span class="q">${s.searches}. ${q}</span><br><span class="r">${r}</span></li>`);
+    if (s.searches === SEARCHES.length) s.step = 2;
+  } else if (s.step === 2) {
+    leverTo = 1;
+    const p = split(s.total);
+    await Promise.all([fly("vault", "searchco", NODES.searchco.color, 900, 11), fly("vault", "scout", NODES.scout.color, 900, 7), fly("vault", "forage", NODES.forage.color, 900, 6)]);
+    move({ vault:-s.total, searchco:p.supplier, forage:p.forage, scout:p.app });
+    s.step = 3;
+  } else {
+    reset();
+  }
+  busy = false;
+  render();
+}
+
+function action() {
+  if (!gl) return "Press the dark button below.";
+  if (s.step === 0) return "Click the vault to deposit $1.00.";
+  if (s.step === 1 && !s.searches) return "Drag an orb from Mia's agent and drop it on SearchCo.";
+  if (s.step === 1) return `Click Mia's agent for search ${s.searches + 1} of 5.`;
+  if (s.step === 2) return "Pull the lever on the vault toward you to settle.";
+  return "";
+}
+
+// Eyebrow, title, body, button label. Titles mark their italic word with *stars*.
+function caption() {
+  if (s.step === 0) return ["Fund the agent", "Mia's research agent needs *web search*.",
+    "It runs inside Scout, an app that found SearchCo's search tool on Forage. Each search costs $0.01. First, Mia funds her agent.",
+    "Next: deposit $1.00"];
+  if (s.step === 1 && !s.searches) return ["One balance", "Mia puts $1.00 in the Forage vault, *once*.",
+    "That one balance pays for any tool on Forage, and she can withdraw what she doesn't spend. Now her agent searches.",
+    "Next: search 1 of 5"];
+  if (s.step === 1) return ["Sign, don't pay", `Search ${s.searches} of 5. *No money has moved yet.*`,
+    `Instead of paying per search, Mia's agent signs a new running total: ${usd(s.total)} owed to SearchCo. SearchCo keeps only the latest signature, so older ones are worthless.`,
+    `Next: search ${s.searches + 1} of 5`];
+  if (s.step === 2) return ["Settle", "5 searches, *one signature* worth $0.05.",
+    "SearchCo cashes in the latest signature whenever it likes. One settlement from the vault pays all three parties at once.",
+    "Next: settle $0.05"];
+  return ["Three payees", "One settlement, *three payees*.",
+    "Scout didn't build search. It brought Mia, so it earns 5% of every call she makes through it, for as long as she stays.",
+    "Replay"];
+}
+
+function setButtons() {
+  $("go").disabled = busy || playing;
+  $("play").disabled = busy || playing || s.step === 3;
+}
+
+// The vault stack and the ledger follow the state: pearls = balance in $0.05 pieces, cards = signatures so far.
+function render3d() {
+  if (!gl) return;
+  const n = Math.round(s.bal.vault / COIN);
+  coins.count = n;
+  // Four piles of five. Settlement takes the top pearl off the first pile.
+  for (let i = 0; i < n; i++) coins.setMatrixAt(i, _m.compose(_p.set(NODES.vault.pos[0] + (i % 2 ? 0.27 : -0.27), VAULT_TOP - 0.01 + Math.floor(i / 4) * 0.065, NODES.vault.pos[2] + (i % 4 < 2 ? -0.18 : 0.22)), _q, COIN_S));
+  coins.instanceMatrix.needsUpdate = true;
+  ledger.count = s.searches;
+  for (let i = 0; i < s.searches; i++) {
+    ledger.setMatrixAt(i, _m.compose(_p.set(0, 0.0225 + i * 0.06, 0), _q.setFromAxisAngle(UP, (i - 2) * 0.08), _s));
+    ledger.setColorAt(i, _c.setHex(i === s.searches - 1 ? 0x5B4A80 : 0xffffff));
+  }
+  _q.identity();
+  ledger.instanceMatrix.needsUpdate = true;
+  if (ledger.instanceColor) ledger.instanceColor.needsUpdate = true;
+}
+
+function render() {
+  const [eye, t, b, btn] = caption();
+  const chapter = s.step === 1 && s.searches ? 2 : s.step === 1 ? 1 : s.step === 2 ? 3 : s.step === 3 ? 4 : 0;
+  $("capNum").textContent = ROMAN[chapter]; $("capEyebrow").textContent = eye;
+  $("capTitle").innerHTML = em(t); $("capBody").textContent = b; $("go").textContent = btn;
+  const act = $("act"); act.classList.remove("warn"); act.textContent = busy ? "" : action();
+  // Touch: block page scroll only on steps where a finger drags something in the scene.
+  if (gl) canvas.style.touchAction = (s.step === 1 && !s.searches) || s.step === 2 ? "none" : "pan-y";
+  setButtons();
+
+  $("steps").innerHTML = STEPS.map((name, i) => {
+    const cls = i < s.step ? "done" : i === s.step ? "on" : "";
+    return (i ? '<div class="line"></div>' : "") + `<div class="step ${cls}" title="${name}"><div class="dot"></div><span>${name}</span></div>`;
+  }).join("");
+
+  for (const [k, n] of Object.entries(nodeEls)) {
+    n.bal.textContent = usd(s.bal[k]);
+    const d = s.delta[k];
+    clearTimeout(n.timer);
+    if (d) { n.delta.textContent = (d > 0 ? "+" : "-") + usd(Math.abs(d)); n.delta.classList.add("show"); n.timer = setTimeout(() => n.delta.classList.remove("show"), 2800); }
+    else n.delta.classList.remove("show");
+  }
+  render3d();
+
+  $("total").textContent = usd(s.total);
+  $("sigNo").textContent = s.searches > 1 ? `#${s.searches}, replaces #${s.searches - 1}` : s.searches ? "#1" : "none yet";
+  $("stamp").textContent = s.step === 3 ? "Cashed in by SearchCo. Settled." : "";
+
+  if (s.step === 3) {
+    const p = split(s.total);
+    $("lgS").textContent = usd(p.supplier); $("lgF").textContent = usd(p.forage); $("lgA").textContent = usd(p.app);
+    $("split").classList.add("show");
+  }
+}
+
+$("go").addEventListener("click", next);
+$("play").addEventListener("click", async () => {
+  playing = true; setButtons();
+  while (s.step < 3) { await next(); await sleep(1600); }
+  playing = false; setButtons();
+});
+reset();
+</script>
+</body>
+</html>
