@@ -735,7 +735,7 @@ if (gl) {
 
   // The tree's leaves: clusters of coins hanging along the upper part of each branch (LEAF_C is where along the branch each
   // cluster sits, LEAF_N how many coins it holds), tinted per branch. Each branch's leaves are kept in tip order, so thinning takes the tip first.
-  const LEAF_C = { searchco:[0.6, 0.74, 0.88, 1.0], forage:[0.66, 1.0], scout:[0.64, 1.0] }, LEAF_N = { searchco:12, forage:8, scout:9 }, LEAF_R = { searchco:0.3, forage:0.24, scout:0.24 };
+  const LEAF_C = { searchco:[0.6, 0.74, 0.88, 1.0], forage:[0.66, 1.0], scout:[0.64, 1.0] }, LEAF_N = { searchco:13, forage:8, scout:9 }, LEAF_R = { searchco:0.3, forage:0.24, scout:0.24 };
   for (const k of Object.keys(TREE)) {
     const ts = LEAF_C[k].flatMap(c => Array.from({ length:LEAF_N[k] }, () => c + (rnd() - 0.5) * 0.08)).sort((a, b) => a - b);
     for (const t of ts) {
@@ -1249,8 +1249,10 @@ async function call() {
 // A point in a branch's canopy, near the tip, with a little scatter.
 const canopy = (k, j = 0) => TREE[k].getPoint(0.86 + rnd() * 0.08).add(_v.set((rnd() - 0.5) * j, (rnd() - 0.5) * j, (rnd() - 0.5) * j));
 // Thin a branch by the share it pays: the leaves nearest the tip go; they come back on Replay. Returns the leaves that fell.
+// LEAF_FALL leaves fall per settlement, shared out like the money: 91% / 4% / 5% drops 46 / 2 / 3, so the tree is the ledger.
+const LEAF_FALL = 50;
 function thin(k, pct) {
-  const on = LEAF.filter(l => l.k === k && l.on), n = Math.min(on.length - 4, 2 + Math.round(pct * 0.08)); // ponytail: 2 + 8% of the share (9, 2, 2), so even the 4% branch visibly loses leaves
+  const on = LEAF.filter(l => l.k === k && l.on), n = Math.min(on.length - 4, Math.max(1, Math.round(pct / 100 * LEAF_FALL)));
   const fell = on.slice(-n); for (const l of fell) l.on = false; return fell;
 }
 // The leaves that fell tumble down and lie around the pad until Replay.
