@@ -153,11 +153,13 @@
 
   @media (max-width:800px) {
     .brand { font-size:17px; } .brand svg { width:22px; height:22px; }
-    .story { left:12px; right:12px; top:auto; bottom:52px; transform:none; width:auto; padding:14px 16px; }
+    /* Phone: the card is a bottom sheet with a grab bar, and the chapter dots sit along its foot. */
+    .story { left:0; right:0; top:auto; bottom:0; transform:none; width:auto; padding:22px 18px calc(52px + env(safe-area-inset-bottom)); border-radius:20px 20px 0 0; border-bottom:0; box-shadow:0 -18px 40px -30px rgba(17,17,17,.45); }
+    .story::before { content:""; position:absolute; top:8px; left:50%; width:36px; height:4px; margin-left:-18px; border-radius:2px; background:var(--line); }
     .story.out { transform:translateY(14px); }
     .story h1 { font-size:21px; } .story .body, .story li { font-size:13px; } .story li b { font-size:16px; }
     .controls { margin-top:12px; } button, .btn { padding:9px 12px; font-size:12px; }
-    .nav { right:auto; left:50%; top:auto; bottom:14px; transform:translateX(-50%); flex-direction:row; gap:9px; align-items:center; }
+    .nav { right:auto; left:50%; top:auto; bottom:calc(16px + env(safe-area-inset-bottom)); transform:translateX(-50%); flex-direction:row; gap:9px; align-items:center; padding:0; background:none; border:0; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
     .nav button span { display:none; }
     .split { top:56px; bottom:auto; left:12px; right:12px; width:auto; transform:none; padding:12px; }
     .legend { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; font-size:12px; } .legend b { font-size:16px; }
@@ -592,6 +594,9 @@ const SHOT = {
 const RAIL = [SHOT.hero, SHOT.problem, SHOT.big, SHOT.start, SHOT.fund, SHOT.callL, SHOT.sign, [[-1.2, 4.6, 10.4], [-1.2, 1.1, 0.6], 0.05], SHOT.forage, [[0.6, 5.2, 14.6], [-0.4, 1.1, 0.0], 0.2]];
 const RAIL_P = new THREE.CatmullRomCurve3(RAIL.map(r => V(r[0])), false, "centripetal", 0.5);
 const RAIL_L = new THREE.CatmullRomCurve3(RAIL.map(r => V(r[1])), false, "centripetal", 0.5);
+// Portrait: how much further back a phone stands at each chapter, on the same look line. Wide chapters pull back more.
+const RAIL_PHONE = [2.0, 1.6, 1.6, 1.25, 1.3, 1.9, 1.35, 1.7, 1.7, 2.0];
+const phoneBack = t => { const i = Math.max(0, Math.min(RAIL_PHONE.length - 2, Math.floor(t))), f = Math.max(0, Math.min(1, t - i)); return RAIL_PHONE[i] + (RAIL_PHONE[i + 1] - RAIL_PHONE[i]) * f; };
 let prog = 0, railT = 0;              // prog: where the scroll is, in chapters (3.5 = halfway from Start to Fund); railT: where the camera is, eased toward prog
 const _rp = new THREE.Vector3(), _rl = new THREE.Vector3();
 let antsTick = null;
@@ -931,7 +936,7 @@ if (gl) {
     W = map.clientWidth; H = map.clientHeight; gl.setSize(W, H, false); camera.aspect = W / H;
     const phone = innerWidth <= 800, r = story.getBoundingClientRect();
     camera.fov = phone ? 62 : 57;
-    if (phone) camera.setViewOffset(W, H, 0, r.height * 0.35, W, H);
+    if (phone) camera.setViewOffset(W, H, 0, (r.height - 56) / 2, W, H); // centre the trail between the header (56 px) and the sheet
     else camera.setViewOffset(W, H, -((r.right + W - 60) / 2 - W / 2), 0, W, H);
     camera.updateProjectionMatrix();
   };
@@ -1088,7 +1093,7 @@ function frame() {
     railT += (prog - railT) * (reduced ? 1 : 1 - Math.exp(-dtw * 2.2));
     const u = Math.max(0, Math.min(1, railT / (CH.length - 1)));
     RAIL_P.getPoint(u, _rp); RAIL_L.getPoint(u, _rl);
-    if (small) _rp.sub(_rl).multiplyScalar(1.7).add(_rl);
+    if (small) _rp.sub(_rl).multiplyScalar(phoneBack(railT)).add(_rl);
     if (!reduced && !small) { const g = (cam.amp ?? 0.05) * Math.min(1, Math.abs(prog - railT) < 0.02 ? 1 : 0); _v.subVectors(_rp, _rl).applyAxisAngle(UP, Math.sin(time * 0.12) * g); _v.y += Math.sin(time * 0.17) * g * 0.6; _rp.copy(_rl).add(_v); }
     if (reduced) { camera.position.copy(_rp); focus.copy(_rl); }
     else { camera.position.lerp(_rp, 1 - Math.exp(-dtw * 3)); focus.lerp(_rl, 1 - Math.exp(-dtw * 4)); }
@@ -1163,7 +1168,7 @@ function flight(mesh, A, B, ms, hop, o = {}) {
   // Close-up of the whole move: aim between where it starts and where it lands, near enough that both fill the frame.
   if (o.follow !== false && gl && !reduced && !quick && (!chase || chase.end)) {
     const a = curve.getPoint(0), b = curve.getPoint(1), mid = a.clone().lerp(b, 0.5), span = Math.max(1.2, a.distanceTo(b));
-    chase = { mesh, end:0, mid, cam:mid.clone().add(_v.set(0, 0.32 * span + 0.9, 0.62 * span + 1.7)) };
+    chase = { mesh, end:0, mid, cam:mid.clone().add(_v.set(0, 0.32 * span + 0.9, 0.62 * span + 1.7).multiplyScalar(small ? 1.6 : 1)) }; // a phone's narrow view needs the close-up further back
   }
   return new Promise(res => flights.push({ mesh, curve, trail, t0:performance.now(), ms, res, keep:!!o.keep, spin:!!o.spin, flat:!!o.flat, ease:o.ease, landed:false }));
 }
