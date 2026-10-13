@@ -4,14 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Forage: the open market for AI tools</title>
+<meta name="description" content="Every AI tool on one balance, paid per call. AI companies list once and keep what they earn, whoever brings the buyer gets paid, every settled call earns $FORAGE.">
+<meta property="og:title" content="Forage: the open market for AI tools">
+<meta property="og:description" content="Every AI tool on one balance, paid per call. AI companies list once and keep what they earn, whoever brings the buyer gets paid, every settled call earns $FORAGE.">
+<meta name="theme-color" content="#FFFEFB">
 <link rel="icon" href="brand/mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700&family=Geist+Mono:wght@400;500&family=Arimo:wght@400;700&display=swap" rel="stylesheet">
 <script type="importmap">
 { "imports": {
-  "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
-  "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+  "three": "./vendor/three/three.module.js",
+  "three/addons/": "./vendor/three/addons/"
 } }
 </script>
 <style>
@@ -21,7 +25,7 @@
     --display:"Oxanium", "Arimo", Helvetica, Arial, sans-serif; --text:"Arimo", "Inter", "Helvetica Neue", Arial, sans-serif; --mono:"Geist Mono", Menlo, monospace;
   }
   * { box-sizing:border-box; }
-  html, body { height:100%; margin:0; overflow:hidden; }
+  html { scroll-behavior:smooth; scroll-snap-type:y proximity; } html, body { margin:0; }
   body { color:var(--body); font:15px/1.5 var(--text); -webkit-font-smoothing:antialiased; background:var(--bg); }
   .card { background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:0 16px 40px -28px rgba(17,17,17,.35); }
   .hide { display:none !important; }
@@ -29,7 +33,7 @@
   .chip { display:inline-grid; place-items:center; width:20px; height:20px; border-radius:5px; background:var(--ink); color:#fff; font:500 11px var(--mono); flex:0 0 auto; }
 
   /* The 3D world fills the window. Everything else floats over it as cards. */
-  .map { position:fixed; inset:0; z-index:0; }
+  .map { position:fixed; inset:0; z-index:0; transition:opacity .5s; } body.site .map { opacity:0; pointer-events:none; }
   .map canvas { position:absolute; inset:0; width:100%; height:100%; display:block; cursor:grab; }
   .map canvas:active { cursor:grabbing; }
   .map.hover canvas { cursor:pointer; }
@@ -59,6 +63,9 @@
   .mk.done { color:var(--ink); } .mk.done .n { background:var(--ink); color:#fff; border-color:var(--ink); }
   .mk.on { color:var(--forage); } .mk.on .n { background:var(--forage); color:#fff; border-color:var(--forage); box-shadow:0 0 0 4px rgba(109,40,217,.14); }
   .mk.pad { color:var(--c); background:rgba(255,254,251,.92); padding:3px 8px 3px 7px; border-radius:7px; box-shadow:0 6px 16px -10px rgba(17,17,17,.4); } .mk.pad::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--c); }
+  .mk.st { display:grid; grid-template-columns:auto auto; align-items:center; gap:2px 6px; padding:4px 8px 4px 5px; border-radius:8px; background:var(--card); border:1px solid var(--line); box-shadow:0 8px 20px -14px rgba(17,17,17,.4); transition:color .4s, padding .3s; }
+  .mk.st .f { grid-column:1 / -1; display:none; font:400 11px/1.3 var(--text); letter-spacing:0; text-transform:none; color:var(--body); white-space:nowrap; }
+  .mk.st.near { padding:7px 10px 7px 7px; color:var(--ink); } .mk.st.near .f { display:block; } .mk.st.near .n { background:var(--forage); color:#fff; border-color:var(--forage); }
   .mk.col { color:var(--ink); font-size:10px; padding:3px 8px; border-radius:6px; background:var(--card); border:1px solid var(--line); }
   /* No WebGL: the party pills become a plain grid; the story still steps through. */
   .map.nogl { overflow:auto; padding:90px 20px 300px; }
@@ -70,11 +77,26 @@
   .map.nogl .mk, .map.nogl .tag3 { display:none; }
 
   /* Brand lockup, top left, always: the forked-root mark and the FORAGE wordmark. */
-  .brand { position:fixed; top:20px; left:28px; z-index:3; display:flex; align-items:center; gap:9px; text-decoration:none; color:var(--ink); font:700 21px/1 "Arimo", Helvetica, Arial, sans-serif; letter-spacing:-.05em; }
+  .top { position:fixed; top:0; left:0; right:0; z-index:6; display:flex; align-items:center; gap:28px; padding:14px 28px; background:rgba(255,254,251,.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid rgba(17,17,17,.06); }
+  .brand { display:flex; align-items:center; gap:9px; text-decoration:none; color:var(--ink); font:700 21px/1 "Arimo", Helvetica, Arial, sans-serif; letter-spacing:-.05em; }
   .brand svg { width:28px; height:28px; }
+  .top .links { display:flex; gap:22px; margin-left:auto; }
+  .top .links a { font:500 11px var(--mono); letter-spacing:.1em; text-transform:uppercase; color:var(--body); text-decoration:none; padding:6px 0; }
+  .top .links a:hover, .top .links a.on { color:var(--forage); }
+  .top .acts { display:flex; gap:8px; }
+  .top .acts .btn.ink { background:var(--ink); color:#fff; border-color:var(--ink); } .top .acts .btn.ink:hover { background:var(--forage); border-color:var(--forage); }
+  body.site .story, body.site .nav, body.site .split, body.site .hint { opacity:0 !important; pointer-events:none !important; }
+  .hint { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:2; font:500 10px var(--mono); letter-spacing:.12em; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:8px; transition:opacity .35s; }
+  .hint::after { content:""; width:1px; height:26px; background:var(--muted); animation:drop 1.6s ease-in-out infinite; }
+  @keyframes drop { 0% { transform:scaleY(0); transform-origin:top; opacity:0; } 40% { transform:scaleY(1); opacity:1; } 100% { transform:scaleY(1); transform-origin:bottom; opacity:0; } }
+  .hint.off { opacity:0; }
+  /* Scroll track: one invisible full-height spacer per chapter. Scrolling it turns the page in the scene. */
+  .track { position:relative; z-index:1; pointer-events:none; }
+  .track .ch { min-height:100vh; scroll-snap-align:start; }
+  .track .ch.long { min-height:130vh; }
 
   /* One compact text block per chapter. */
-  .story { position:fixed; left:28px; top:50%; transform:translateY(-50%); z-index:2; width:min(430px, 34vw); padding:22px 24px; transition:opacity .35s ease, transform .35s ease; }
+  .story { position:fixed; left:28px; top:calc(50% + 28px); transform:translateY(-50%); z-index:2; width:min(430px, 34vw); padding:22px 24px; transition:opacity .35s ease, transform .35s ease; }
   .story.out { opacity:0; transform:translateY(calc(-50% + 14px)); }
   .eyebrow { display:flex; align-items:center; gap:9px; font:500 10px var(--mono); letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
   .eyebrow .chip[hidden] { display:none; }
@@ -119,11 +141,10 @@
   .legend { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-top:12px; font-size:13px; }
   .legend b { display:block; font:600 19px/1.1 var(--display); font-variant-numeric:tabular-nums; }
 
-  footer { position:fixed; left:28px; bottom:14px; z-index:2; font:400 11px var(--mono); color:var(--muted); max-width:min(430px, 34vw); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  footer a { color:var(--muted); }
+
 
   @media (max-width:800px) {
-    .brand { top:14px; left:16px; font-size:17px; } .brand svg { width:22px; height:22px; }
+    .brand { font-size:17px; } .brand svg { width:22px; height:22px; }
     .story { left:12px; right:12px; top:auto; bottom:52px; transform:none; width:auto; padding:14px 16px; }
     .story.out { transform:translateY(14px); }
     .story h1 { font-size:21px; } .story .body, .story li { font-size:13px; } .story li b { font-size:16px; }
@@ -132,12 +153,58 @@
     .nav button span { display:none; }
     .split { top:56px; bottom:auto; left:12px; right:12px; width:auto; transform:none; padding:12px; }
     .legend { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; font-size:12px; } .legend b { font-size:16px; }
-    footer { display:none; }
+    .top { padding:10px 16px; gap:12px; } .top .links { display:none; } .top .acts .btn.ghost { display:none; }
+    .hint { display:none; }
     .lbl { padding:3px 8px; gap:0 6px; } .lbl b { font-size:10px; } .lbl .bal { font-size:10px; } .lbl .role { display:none; } .lbl .delta { font-size:10px; }
     .lbl .desc { display:none !important; }
     .tag3 { font-size:9px; padding:3px 7px; max-width:150px; } .tag3.sig .amt { font-size:16px; } .tag3.sig small { display:none; }
     .mk { font-size:8px; gap:4px; } .mk .n { width:14px; height:14px; font-size:8px; }
   }
+  /* The site below the story: it slides up over the fixed scene. */
+  .site { position:relative; z-index:4; background:var(--bg); box-shadow:0 -40px 80px -40px rgba(17,17,17,.25); }
+  .sec { max-width:1160px; margin:0 auto; padding:112px 28px; display:flex; flex-direction:column; gap:44px; }
+  .sec.band { max-width:none; padding:0; }
+  .sec.band > .in { max-width:1160px; margin:0 auto; padding:104px 28px; display:flex; flex-direction:column; gap:40px; }
+  .dark { background:var(--ink); color:#D6D3CC; }
+  .dark .eyebrow { color:#A5A09A; } .site .dark h2 { color:#fff; } .dark .lead { color:#D6D3CC; }
+  .dark .tile { background:transparent; border-color:#333; color:#A5A09A; } .dark .tile h3 { color:#fff; }
+  .dark .tile p { color:#D6D3CC; } .dark .rows li { border-color:#333; } .dark .rows li b, .dark .rows li span:first-child { color:#fff; } .dark .rows li span:last-child { color:#A5A09A; }
+  .head { display:flex; flex-direction:column; gap:14px; max-width:760px; }
+  .site h2 { margin:0; font:700 clamp(32px, 3.8vw, 52px)/1.08 var(--display); letter-spacing:-.02em; color:var(--ink); text-wrap:balance; }
+  .site h2 i { font-style:normal; color:var(--forage); }
+  .lead { margin:0; font-size:18px; color:var(--body); text-wrap:pretty; }
+  .grid { display:grid; gap:18px; grid-template-columns:repeat(auto-fit, minmax(min(250px, 100%), 1fr)); }
+  .grid.g3 { grid-template-columns:repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap:22px; }
+  .grid.g2 { grid-template-columns:repeat(auto-fit, minmax(min(360px, 100%), 1fr)); gap:22px; }
+  .tile { background:#fff; border:1px solid var(--line); border-radius:14px; padding:24px; display:flex; flex-direction:column; gap:12px; font-size:15px; color:var(--body); }
+  .tile h3 { margin:0; font:600 20px/1.2 var(--display); color:var(--ink); }
+  .tile .k { display:flex; align-items:center; gap:10px; }
+  .tile .k .chip { width:26px; height:26px; font-size:12px; border-radius:7px; }
+  .tile.lane { border-top:4px solid var(--c); padding:30px; gap:16px; }
+  .tile.lane .eyebrow { color:var(--c); }
+  .tile.lane h3 { font-size:24px; }
+  .tile ul { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:10px; }
+  .tile li { display:flex; gap:10px; } .tile li::before { content:"\2014"; color:var(--c, var(--muted)); flex:0 0 auto; }
+  .tile.only { border-color:var(--forage); }
+  .rows { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; }
+  .rows li { display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .rows li:last-child { border-bottom:0; } .rows li::before { content:none; }
+  .rows li span:last-child { font:400 11px var(--mono); color:var(--muted); text-align:right; }
+  .rows li b { color:var(--ink); } .tile.only .rows li span:last-child { color:var(--forage); }
+  .stat { display:flex; flex-direction:column; gap:8px; } .stat b { font:700 40px/1 var(--display); color:#fff; } .stat span { font:400 12px var(--mono); }
+  .fine { margin:0; font:400 12px/1.6 var(--mono); color:var(--muted); max-width:900px; }
+  .cta { display:grid; gap:40px; grid-template-columns:repeat(auto-fit, minmax(min(380px, 100%), 1fr)); align-items:center; }
+  .cta .box { background:var(--ink); color:#fff; border-radius:18px; padding:32px; display:flex; flex-direction:column; gap:14px; }
+  .cta .box .eyebrow { color:#A5A09A; }
+  .cta .box a.mail { font:600 clamp(20px, 2.2vw, 26px) var(--display); color:#fff; text-decoration:none; word-break:break-all; }
+  .cta .box .controls { margin-top:4px; } .cta .box .btn { background:#fff; } .cta .box .btn.ghost { background:transparent; color:#fff; border-color:#444; }
+  .acts .btn, .cta .btn { display:inline-flex; align-items:center; }
+  .site footer { border-top:1px solid var(--line); }
+  .site footer .in { max-width:1160px; margin:0 auto; padding:28px 28px 44px; display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px 32px; font:400 11px var(--mono); color:var(--muted); }
+  .site footer a { color:var(--muted); }
+  .site footer .fl { display:flex; flex-wrap:wrap; gap:8px 20px; }
+  .trail { height:0; border-top:3px dotted #C9C5BC; max-width:1104px; margin:0 auto; }
+  @media (max-width:800px) { .sec { padding:72px 18px; gap:32px; } .sec.band > .in { padding:72px 18px; } .tile.lane { padding:22px; } .site footer .in { padding:22px 18px 36px; } }
   @media (prefers-reduced-motion:reduce) {
     .story, .split, .nav button .d, .lbl .delta { transition:none; }
     .story.out { transform:translateY(-50%); }
@@ -146,13 +213,27 @@
 </style>
 </head>
 <body>
+<header class="top">
+  <a class="brand" href="#top" aria-label="Forage"><svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" aria-hidden="true"><path d="M50 94 V58 C50 40 60 28 76 16" stroke="#111" stroke-width="13"/><path d="M50 66 C46 50 36 40 22 34" stroke="#6D28D9" stroke-width="5"/><path d="M50 60 C48 44 46 30 40 14" stroke="#4B5563" stroke-width="5"/></svg>FORAGE</a>
+  <nav class="links" aria-label="Site">
+    <a href="#top" data-sec="top">Story</a>
+    <a href="#who" data-sec="who">Who it's for</a>
+    <a href="#token" data-sec="token">$FORAGE</a>
+    <a href="#field" data-sec="field">The field</a>
+    <a href="#stack" data-sec="stack">Stack</a>
+  </nav>
+  <div class="acts">
+    <button class="btn ghost" id="watchTop" type="button">Watch the story</button>
+    <!-- TODO: point this at mailto:<contact address> before shipping. -->
+    <a class="btn ink" href="#contact">Talk to us</a>
+  </div>
+</header>
+
 <main>
   <div class="map" id="map" role="img" aria-label="A money tree in the middle, and a trail around it from Mia's agent and the Scout app, past the Forage vault, SearchCo and the signpost, to the tree's base, where one settlement drops three coins">
     <canvas id="scene"></canvas>
     <div id="labels"></div>
   </div>
-
-  <a class="brand" href="#" aria-label="Forage"><svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" aria-hidden="true"><path d="M50 94 V58 C50 40 60 28 76 16" stroke="#111" stroke-width="13"/><path d="M50 66 C46 50 36 40 22 34" stroke="#6D28D9" stroke-width="5"/><path d="M50 60 C48 44 46 30 40 14" stroke="#4B5563" stroke-width="5"/></svg>FORAGE</a>
 
   <section class="story card" id="story" aria-live="polite">
     <div class="eyebrow"><span class="chip" id="capNum">1</span><span id="capEyebrow"></span></div>
@@ -162,8 +243,7 @@
     <p class="note" id="note"></p>
     <div class="controls">
       <button id="cta"></button>
-      <!-- TODO: point this at mailto:<contact address> before shipping. -->
-      <a class="btn" id="talk" href="#" hidden>Talk to us</a>
+      <a class="btn" id="talk" href="#contact" hidden>Talk to us</a>
       <button class="sm" id="prev">Prev</button>
       <button class="sm" id="next">Next</button>
       <button class="sm" id="watch">Watch the story</button>
@@ -187,16 +267,165 @@
     </div>
   </section>
 
-  <footer>Simulated. Amounts in USDC with 6 decimals, as on Base. Names are illustrative. Per-call prices from treg.to's public catalog, Oct 2026. 3D models: <a href="assets/CREDITS.md" target="_blank" rel="noopener">credits</a>.</footer>
+  <div class="hint" id="hint" aria-hidden="true">Scroll to walk the trail</div>
+
+  <!-- One spacer per chapter; scrolling through them drives the scene. -->
+  <div class="track" id="track" aria-hidden="true">
+    <section class="ch" id="top" data-ch="0"></section>
+    <section class="ch" data-ch="1"></section>
+    <section class="ch" data-ch="2"></section>
+    <section class="ch" data-ch="3"></section>
+    <section class="ch" data-ch="4"></section>
+    <section class="ch long" data-ch="5"></section>
+    <section class="ch" data-ch="6"></section>
+    <section class="ch long" data-ch="7"></section>
+    <section class="ch" data-ch="8"></section>
+    <section class="ch" data-ch="9"></section>
+  </div>
+
+  <div class="site" id="site">
+
+    <section class="sec" id="who">
+      <div class="head">
+        <div class="eyebrow">Who it's for</div>
+        <h2>Three sides. <i>All three</i> get paid.</h2>
+        <p class="lead">Every settlement pays the AI company that served the call, the protocol, and the app that brought the buyer. Nobody signs up anywhere.</p>
+      </div>
+      <div class="grid g3">
+        <div class="tile lane" style="--c:var(--supplier)">
+          <div class="eyebrow">For AI companies &middot; list once</div>
+          <h3>Customers you never onboarded.</h3>
+          <ul>
+            <li>No signup, no card, no key. Install the middleware and your first settled call lists you.</li>
+            <li>Keep what you earn, in USDC, to your wallet. Your endpoint, your brand, your ERC-8004 identity.</li>
+            <li>Apps are paid to bring you buyers. Buyers stake on you, ranking you first.</li>
+          </ul>
+        </div>
+        <div class="tile lane" style="--c:var(--buyer)">
+          <div class="eyebrow">For buyers &middot; one balance</div>
+          <h3>Every tool, one balance, one MCP server.</h3>
+          <ul>
+            <li>Fund from any wallet or on-ramp. Nothing changes in your tools.</li>
+            <li>No account anywhere. Pay per call, not per month, at prices the supplier's saved costs allow.</li>
+            <li>Session keys and spend caps, set locally. Earn $FORAGE on every call you pay for.</li>
+          </ul>
+        </div>
+        <div class="tile lane" style="--c:var(--app)">
+          <div class="eyebrow">For the apps that bring buyers &middot; get paid</div>
+          <h3>A builder code on every call you route.</h3>
+          <ul>
+            <li>A fee the user approves once and can revoke, paid at every settlement.</li>
+            <li>Claimed from the treasury, no invoices. A public scoreboard of who brings paid volume.</li>
+            <li>Earn $FORAGE on the usage you route, on top of the builder fee.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="trail"></div>
+
+    <section class="sec" id="token">
+      <div class="head">
+        <div class="eyebrow" style="color:var(--forage)">$FORAGE &middot; proposed</div>
+        <h2>Usage <i>earns</i> it. Holding discounts it. Staking directs it.</h2>
+        <p class="lead">A fixed number of $FORAGE is minted each week and split by recognized usage among buyers, AI companies and the apps that bring them. No day-one unlock; the team is on the same clock. The mint halves as usage doubles, and the unearned part is burned.</p>
+      </div>
+      <div class="grid g3">
+        <div class="tile"><div class="k"><span class="chip">1</span><h3>Weekly mint</h3></div><p style="margin:0">A fixed number each week. No day-one unlock. Halves as cumulative usage doubles; what is not earned is burned.</p></div>
+        <div class="tile"><div class="k"><span class="chip">2</span><h3>Split by usage</h3></div><p style="margin:0">Every settled call earns $FORAGE: buyer, supplier and app, each. Recognized usage only; wash proofs first.</p></div>
+        <div class="tile"><div class="k"><span class="chip">3</span><h3>Buyers hold</h3></div><p style="margin:0">More held, bigger discount on every AI company's credits. Stake mints a daily call credit and a lower fee tier at settlement.</p></div>
+        <div class="tile"><div class="k"><span class="chip">4</span><h3>Buyers stake on sellers</h3></div><p style="margin:0">Stake $FORAGE in any supplier's pool. Rewards follow that supplier's usage; stake directs part of the mint there. Longer lock, more rewards.</p></div>
+        <div class="tile"><div class="k"><span class="chip">5</span><h3>More calls</h3></div><p style="margin:0">Cheaper for holders, better-ranked sellers. Staked suppliers rank first and pay less; apps are paid to route buyers.</p></div>
+        <div class="tile"><div class="k"><span class="chip">6</span><h3>Fees buy $FORAGE</h3></div><p style="margin:0">A share of fees buys $FORAGE back; bought tokens fund the credit pool. Buybacks above the mint shrink the mint. Early unstake and proven wash are slashed.</p></div>
+      </div>
+      <p class="fine">Working name. Terms are proposals. It opens in stages: prove the call, mainnet and apps, the weekly mint, then staking and credits.</p>
+    </section>
+
+    <section class="sec band dark" id="field">
+      <div class="in">
+        <div class="head">
+          <div class="eyebrow">The field</div>
+          <h2>Settlement is no longer a moat. <i style="color:#B794F6">Demand</i> is.</h2>
+          <p class="lead">At least five live products let an agent find a tool and pay per call in USDC. None pays the app that brought the buyer, and none shares a token with buyers and suppliers. We stand on the standard and lead with what nobody ships.</p>
+        </div>
+        <div class="grid g2">
+          <div class="tile">
+            <div class="eyebrow">What a market needs &middot; crowded, becoming a standard</div>
+            <ul class="rows">
+              <li><span>Agent search</span><span>Bazaar, Circle, mpp.dev, AgentCash</span></li>
+              <li><span>Per-call USDC</span><span>x402 catalogs</span></li>
+              <li><span>Batched sub-cent settlement</span><span>now in the x402 standard</span></li>
+              <li><span>Self listing</span><span>partly, or curated</span></li>
+            </ul>
+            <p style="margin:0;font-size:13px">Forage has all of it, on open code: x402 SDKs, our own facilitator, ERC-8004 identity, EAS attestations.</p>
+          </div>
+          <div class="tile only">
+            <div class="eyebrow" style="color:#B794F6">What brings demand back &middot; where Forage stands alone</div>
+            <ul class="rows">
+              <li><b>Pays the app that brings the buyer</b><span style="color:#B794F6">only Forage</span></li>
+              <li><b>Usage token both sides earn</b><span style="color:#B794F6">only Forage</span></li>
+              <li><b>Stake on a chosen supplier</b><span style="color:#B794F6">only Forage</span></li>
+              <li><b>Holder discount across all tools</b><span style="color:#B794F6">only Forage</span></li>
+            </ul>
+            <p style="margin:0;font-size:13px">Fee to the supplier: small, capped in the contract. Elsewhere: 4% to 25%, or not published.</p>
+          </div>
+        </div>
+        <p class="fine">About 200 names screened across payment rails, tool catalogs, tool companies, token markets and standards, 7 October 2026. Closest by far is Antseed. Fees and counts are the companies' own statements; Forage's row is its design. Analysis, not financial advice.</p>
+      </div>
+    </section>
+
+    <section class="sec" id="stack">
+      <div class="head">
+        <div class="eyebrow">Built on open standards</div>
+        <h2>The call runs at the edge. <i>Base</i> holds the money.</h2>
+        <p class="lead">Open services anyone can run do discovery, settlement and accounting. Our code is the catalog, the attribution and $FORAGE.</p>
+      </div>
+      <div class="grid">
+        <div class="tile"><div class="eyebrow" style="color:var(--forage)">x402</div><h3>Payment and settlement</h3><p style="margin:0">Signed vouchers per call; a facilitator verifies for free and settles in batches, one transaction per batch. Anyone can run one; we run one.</p></div>
+        <div class="tile"><div class="eyebrow" style="color:var(--forage)">ERC-8004</div><h3>Identity and reputation</h3><p style="margin:0">Every tool is a registered agent. Reputation with receipt hash, written at listing. Validation badges; TEE later.</p></div>
+        <div class="tile"><div class="eyebrow" style="color:var(--forage)">USDC on Base</div><h3>Deposits and channels</h3><p style="margin:0">A vault keyed by buyer id. Reserve a session budget, settle the cumulative delta per batch, pay supplier, treasury and builder at once.</p></div>
+        <div class="tile"><div class="eyebrow" style="color:var(--forage)">MCP + ERC-8021</div><h3>Discovery and attribution</h3><p style="margin:0">search_tools over MCP; direct install in Claude Code, Cursor and Codex. Builder codes attribute every routed call to the app that sent it.</p></div>
+      </div>
+      <p class="fine">Catalog built from settlements &middot; Listings lapse when they go quiet &middot; Usage oracle: wash proofs, caps, dispute scores &middot; Fee capped in code; parameters, not code</p>
+    </section>
+
+    <div class="trail"></div>
+
+    <section class="sec" id="contact">
+      <div class="cta">
+        <div class="head">
+          <h2>List once. Fund once. <i>Everyone</i> gets paid.</h2>
+          <p class="lead">Route first, install later: on day one the Forage MCP server pays keyless suppliers at their own endpoints. If you sell a tool, build an agent or bring buyers, we want to talk.</p>
+        </div>
+        <div class="box">
+          <div class="eyebrow">Talk to us</div>
+          <!-- TODO: replace [CONTACT EMAIL] with the real address before shipping. -->
+          <a class="mail" href="mailto:[CONTACT EMAIL]">[CONTACT EMAIL]</a>
+          <div class="controls">
+            <button class="btn" id="replayBottom" type="button">Replay the story</button>
+            <a class="btn ghost" href="source/Forage_One_Page_2026-10-07_2.pdf" target="_blank" rel="noopener">Read the one-pager</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="in">
+        <span>FORAGE &middot; Working name. Terms are proposals. Not financial advice.</span>
+        <span>Simulated. Amounts in USDC with 6 decimals, as on Base. Names are illustrative. Per-call prices from treg.to's public catalog, Oct 2026. All 3D is built in code; no third-party models.</span>
+        <div class="fl">
+          <a href="https://github.com/0xkrotus/forage-demo" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+    </footer>
+  </div>
 </main>
 
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Money in micro-USDC (6 decimals), like the real token, so the split has no float dust.
@@ -339,7 +568,7 @@ const SHOT = {
   hero:    [[-1.0, 4.9, 13.6], [-1.4, 1.0, 0.0], 0.25, 2.3],
   problem: [[-2.2, 12.0, 6.5], [-2.2, 0, -0.4], 0.1, 1.6],
   big:     [[-1.4, 16.0, 8.5], [-1.4, 0, -0.5], 0.1, 1.6],
-  start:   [[-6.0, 2.6, 6.2],  [-6.4, 0.9, -0.4], 0.05],
+  start:   [[-6.5, 2.6, 6.4],  [-6.9, 0.9, -0.4], 0.05],
   fund:    [[-4.7, 3.2, 6.8],  [-5.1, 0.8, -0.4], 0.05],
   callL:   [[-2.2, 5.0, 12.6], [-2.8, 1.0, -0.6], 0.05],
   callR:   [[-1.6, 5.0, 12.6], [-2.2, 1.0, -0.6], 0.05],
@@ -348,6 +577,15 @@ const SHOT = {
   split:   [[0.2, 5.2, 11.0],  [0.0, 1.3, 1.0], 0.06, 1.6],
   forage:  [[0.4, 5.6, 13.4],  [0.2, 1.4, -0.3], 0.08, 1.7],
 };
+
+// The rail: one camera path and one look-at path through the ten chapters, in order. Scrolling moves the viewer
+// along it continuously (knot i is chapter i), so the camera never cuts; it walks the trail around the tree.
+const RAIL = [SHOT.hero, SHOT.problem, SHOT.big, SHOT.start, SHOT.fund, SHOT.callL, SHOT.sign, [[-1.2, 4.6, 10.4], [-1.2, 1.1, 0.6], 0.05], SHOT.forage, [[0.6, 5.2, 14.6], [-0.4, 1.1, 0.0], 0.2]];
+const RAIL_P = new THREE.CatmullRomCurve3(RAIL.map(r => V(r[0])), false, "centripetal", 0.5);
+const RAIL_L = new THREE.CatmullRomCurve3(RAIL.map(r => V(r[1])), false, "centripetal", 0.5);
+let prog = 0, railT = 0;              // prog: where the scroll is, in chapters (3.5 = halfway from Start to Fund); railT: where the camera is, eased toward prog
+const _rp = new THREE.Vector3(), _rl = new THREE.Vector3();
+let antsTick = null;
 
 // Matte, calm materials. Models keep their own.
 const matte = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness:0.55, metalness:0.05, ...o });
@@ -392,37 +630,25 @@ if (gl) {
   camera.position.set(0.2, 6.5, 19);
 
   // Daylight: a soft sky, one sun that casts a soft shadow, and a neutral room for reflections.
-  scene.add(new THREE.HemisphereLight(0xFFFFFF, 0xE8E3D8, 0.5));
+  scene.add(new THREE.HemisphereLight(0xFFFFFF, 0xE8E3D8, 0.65));
   const sun = new THREE.DirectionalLight(0xFFFBF2, 0.6); sun.position.set(5, 11, 7); sun.castShadow = true;
   Object.assign(sun.shadow.camera, { left:-13, right:13, top:9, bottom:-9, near:1, far:40 });
-  sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02; sun.shadow.intensity = 0.55;
+  sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.03; sun.shadow.intensity = 0.45;
   scene.add(sun, sun.target);
   const fill = new THREE.DirectionalLight(0xFFFFFF, 0.12); fill.position.set(-6, 4, 5); scene.add(fill);
-  // Start with a neutral studio room for reflections; the sky photo replaces it once loaded.
-  { const pm = new THREE.PMREMGenerator(gl); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose(); scene.environmentIntensity = 0.35; }
-  // Real sunset sky (Poly Haven, CC0): the backdrop above the horizon and the reflections on the models.
-  // The neutral room light above stays as the fallback until it loads; fog takes the sky's pale horizon tone.
-  new RGBELoader().load("assets/sky.hdr", tex => {
-    tex.mapping = THREE.EquirectangularReflectionMapping;
-    scene.background = tex; scene.backgroundIntensity = 1;
-    const pm2 = new THREE.PMREMGenerator(gl); scene.environment = pm2.fromEquirectangular(tex).texture; pm2.dispose();
-    scene.environmentIntensity = 0.55;
-    // Ground runs to the horizon and fogs into the sky's horizon tone, so there is no seam.
-    scene.fog.color.set(0xDCD6E0); scene.fog.near = 30; scene.fog.far = 260;
-    // Horizon haze: a huge open cylinder, fog-coloured at the ground and clear 12 degrees up, hides the photo's hard horizon.
-    const haze = new THREE.Mesh(new THREE.CylinderGeometry(1500, 1500, 640, 64, 1, true), new THREE.ShaderMaterial({
-      side:THREE.BackSide, transparent:true, depthWrite:false, fog:false, uniforms:{ c:{ value:scene.fog.color } },
-      vertexShader:`varying float vY; void main() { vY = position.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-      fragmentShader:`uniform vec3 c; varying float vY; void main() { gl_FragColor = vec4(c, 1.0 - smoothstep(-20.0, 320.0, vY));
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-      }` })); // same tone mapping and sRGB output as the fogged ground, so the two match
-    haze.position.y = 0; haze.renderOrder = -1; scene.add(haze);
-  });
+  // Studio: a neutral room for reflections and nothing else. The ground fogs into the page colour, so the world has no horizon.
+  { const pm = new THREE.PMREMGenerator(gl); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose(); scene.environmentIntensity = 0.4; }
 
-  // Ground: a light plane that takes the shadows and fades into the page.
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), matte(0xF4F2EC, { roughness:0.95, metalness:0 }));
-  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; ground.material.envMapIntensity = 0.1; scene.add(ground); // barely reflects, so the sunset never tints it
+  // Ground: an infinite cyclorama in the page colour, and a large soft stage disc the whole trail stands on.
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), matte(BG, { roughness:1, metalness:0 }));
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; ground.material.envMapIntensity = 0; scene.add(ground);
+  // The stage is a soft pool of slightly warmer ground that fades out, so nothing draws a horizon.
+  const sc2 = document.createElement("canvas"); sc2.width = sc2.height = 1024; const sg = sc2.getContext("2d");
+  const grad = sg.createRadialGradient(512, 512, 0, 512, 512, 512); grad.addColorStop(0, "#fff"); grad.addColorStop(0.5, "#fff"); grad.addColorStop(1, "#000");
+  sg.fillStyle = grad; sg.fillRect(0, 0, 1024, 1024);
+  const stageAlpha = new THREE.CanvasTexture(sc2); stageAlpha.generateMipmaps = false; stageAlpha.minFilter = THREE.LinearFilter; stageAlpha.anisotropy = 8;
+  const stage = new THREE.Mesh(new THREE.CircleGeometry(19, 96), matte(0xEFECE4, { roughness:1, metalness:0, transparent:true, alphaMap:stageAlpha }));
+  stage.rotation.x = -Math.PI / 2; stage.position.set(-1.0, 0.004, -0.6); stage.receiveShadow = false; stage.renderOrder = 1; stage.material.envMapIntensity = 0; scene.add(stage);
 
   // A party: a group with one body mesh plus trim, all meshes pickable under one key.
   const party = (key, body, ...trim) => {
@@ -431,60 +657,70 @@ if (gl) {
     g.traverse(o => { if (o.isMesh) { o.userData.key = key; o.castShadow = true; o.receiveShadow = true; pickables.push(o); } });
     scene.add(g); nodes[key] = g; return g;
   };
-  // Placeholders until the models load: simple blocks in lane colours, seated on the ground.
-  const block = (w, h, d, color) => { const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, 0.06), matte(color)); m.position.y = h / 2; return m; };
-  party("mia", block(0.8, 1.5, 0.6, NODES.mia.color));
-  party("scout", block(0.55, 1.2, 0.08, NODES.scout.color));
-  party("searchco", block(0.9, 2.0, 0.9, NODES.searchco.color));
-  party("vault", block(1.4, 1.5, 1.2, 0x2A2A2A));
+  // The four parties, one designed set: rounded geometry, matte lane colours, every face toward the viewer (+z).
+  const rbox = (w, h, d, r, color, o = {}) => new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 4, r), matte(color, o));
+  const at = (m, x, y, z) => { m.position.set(x, y, z); return m; };
+  const CREAM = 0xF4F1EA, DARK = 0x1E1E1E, SILVER = 0xA6A6A6;
+  const metal = { metalness:0.7, roughness:0.3 };
+
+  // Mia's agent: a small round-shouldered robot in cream with an orange band and face.
+  const mia = new THREE.Group();
+  mia.add(at(rbox(0.62, 0.18, 0.46, 0.06, DARK), 0, 0.09, 0));
+  mia.add(at(rbox(0.74, 0.64, 0.52, 0.14, CREAM), 0, 0.5, 0));
+  mia.add(at(rbox(0.78, 0.1, 0.56, 0.05, NODES.mia.color), 0, 0.5, 0));
+  mia.add(at(rbox(0.64, 0.48, 0.48, 0.14, CREAM), 0, 1.08, 0));
+  mia.add(at(rbox(0.46, 0.24, 0.05, 0.03, DARK), 0, 1.1, 0.23));
+  for (const x of [-0.11, 0.11]) mia.add(at(rbox(0.08, 0.07, 0.02, 0.01, NODES.mia.color, { emissive:NODES.mia.color, emissiveIntensity:0.6 }), x, 1.11, 0.26));
+  for (const x of [-0.42, 0.42]) mia.add(at(new THREE.Mesh(new THREE.SphereGeometry(0.08, 20, 14), matte(NODES.mia.color)), x, 0.62, 0));
+  const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.22, 12), matte(DARK)); mia.add(at(ant, 0, 1.43, 0));
+  mia.add(at(new THREE.Mesh(new THREE.SphereGeometry(0.06, 18, 12), matte(NODES.mia.color)), 0, 1.56, 0));
+  mia.rotation.y = 0.2;
+  party("mia", mia); NODES.mia.h = 1.62;
+
+  // Scout: an app window on a small stand, three list rows and one purple dot on the screen.
+  const scout = new THREE.Group();
+  scout.add(at(rbox(0.5, 0.22, 0.36, 0.06, NODES.scout.color), 0, 0.11, 0));
+  const slab = new THREE.Group(); slab.position.y = 0.22; slab.rotation.x = -0.08;
+  slab.add(at(rbox(0.74, 1.28, 0.08, 0.06, DARK), 0, 0.64, 0));
+  slab.add(at(rbox(0.64, 1.16, 0.02, 0.03, 0xF9F8F4), 0, 0.64, 0.04));
+  [0.98, 0.78, 0.58].forEach((y, i) => slab.add(at(rbox(i === 1 ? 0.3 : 0.4, 0.07, 0.012, 0.02, 0xC9CBD1), -0.06 + (i === 1 ? -0.05 : 0), y, 0.056)));
+  slab.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.014, 24), matte(PURPLE)).rotateX(Math.PI / 2), -0.18, 1.14, 0.056));
+  slab.add(at(rbox(0.36, 0.06, 0.012, 0.02, 0xC9CBD1), 0.06, 1.14, 0.056));
+  scout.add(slab); scout.rotation.y = 0.35;
+  party("scout", scout); NODES.scout.h = 1.5;
+
+  // The Forage vault: a rounded ink safe with a silver dial in a purple ring, a handle, and the mark on its door.
+  const vault = new THREE.Group();
+  vault.add(at(rbox(1.3, 1.2, 1.1, 0.1, DARK), 0, 0.6, 0));
+  vault.add(at(rbox(1.1, 1.0, 0.04, 0.04, 0x2A2A2A), 0, 0.6, 0.55));
+  vault.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.06, 32), matte(SILVER, metal)).rotateX(Math.PI / 2), 0.34, 0.62, 0.59));
+  vault.add(at(new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.022, 10, 40), matte(PURPLE)), 0.34, 0.62, 0.6));
+  vault.add(at(rbox(0.05, 0.32, 0.05, 0.02, SILVER, metal), 0.34, 0.62, 0.64));
+  vault.add(at(rbox(0.06, 0.4, 0.06, 0.02, SILVER, metal), -0.44, 0.62, 0.6));
+  for (const x of [-0.5, 0.5]) for (const z of [-0.4, 0.4]) vault.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.04, 16), matte(SILVER, metal)), x, 0.02, z));
+  party("vault", vault); NODES.vault.h = 1.2; VAULT_TOP = 1.2;
+  vault.add(markMesh(0.42, [-0.1, 0.42, 0.58]));
+
+  // SearchCo: a teal server tower with five drive slots and gold indicator lights.
+  const sc = new THREE.Group();
+  sc.add(at(rbox(0.9, 2.0, 0.9, 0.08, NODES.searchco.color), 0, 1.0, 0));
+  sc.add(at(rbox(0.96, 0.08, 0.96, 0.03, DARK), 0, 2.04, 0));
+  sc.add(at(rbox(0.96, 0.08, 0.96, 0.03, DARK), 0, 0.04, 0));
+  [1.66, 1.44, 1.22, 1.0, 0.78].forEach(y => {
+    sc.add(at(rbox(0.68, 0.12, 0.04, 0.02, 0x5F98A2), -0.04, y, 0.45));
+    sc.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.02, 12), matte(0xE9BE63, { emissive:0xE9BE63, emissiveIntensity:0.5 })).rotateX(Math.PI / 2), 0.36, y, 0.46));
+  });
+  sc.rotation.y = -0.3;
+  party("searchco", sc); NODES.searchco.h = 2.08;
   // Forage: the money tree. Its trunk is the forked-root mark, standing in the middle of the trail; the coin leaves come after the coin geometry below.
   party("forage", markMesh(TREE_S));
   for (const [k, i] of Object.entries({ searchco:0, forage:1, scout:2 })) TREE[k] = markPath(MARK[i], TREE_S, NODES.forage.pos, false);
 
-  // Each model is scaled so its largest side is `size`, seated on the ground, turned to face the camera,
-  // then swapped in for the placeholder, including picking and the pulse glow.
-  const MODELS = {
-    mia:      { file:"robot/robot.glb",   size:1.7,  yaw:0.25, drop:/Suelo/ },  // the model ships with a floor disc
-    scout:    { file:"phone/phone.glb",   size:1.4, yaw:Math.PI - 0.35, tilt:-0.12, drop:/Logo/ }, // screen toward the viewer, no brand mark
-    searchco: { file:"server/server.glb", size:2.3,  yaw:-0.35 },
-    vault:    { file:"safe/safe.glb",     size:1.7,  yaw:0, vault:true },
-  };
-  const loader = new GLTFLoader();
-  for (const [key, m] of Object.entries(MODELS)) loader.load("assets/" + m.file, gltf => {
-    const model = gltf.scene, g = nodes[key];
-    if (m.drop) { const gone = []; model.traverse(o => { if (o.isMesh && m.drop.test(o.name)) gone.push(o); }); gone.forEach(o => o.removeFromParent()); }
-    model.rotation.y = m.yaw; if (m.tilt) model.rotation.x = m.tilt;
-    const box = new THREE.Box3().setFromObject(model), size = box.getSize(new THREE.Vector3());
-    model.scale.setScalar(m.size / Math.max(size.x, size.y, size.z));
-    box.setFromObject(model); const c = box.getCenter(new THREE.Vector3()), d = box.getSize(new THREE.Vector3());
-    model.position.set(-c.x, -box.min.y, -c.z);
-    NODES[key].h = d.y;
-    if (m.vault) { VAULT_TOP = d.y; render3d(); }
-    model.traverse(o => { if (o.isMesh) { o.userData.key = key; o.material = o.material.clone(); o.material.envMapIntensity = 0.7; o.castShadow = true; o.receiveShadow = true; pickables.push(o); } });
-    for (const o of [...g.children]) if (o.isMesh) g.remove(o); // the placeholder block
-    pickables = pickables.filter(o => o.userData.key !== key || model.getObjectById(o.id));
-    g.add(model); g.userData.body = model;
-    // The Forage mark on the safe door.
-    if (m.vault) { const decal = markMesh(0.42, [0, d.y * 0.52, d.z / 2 + 0.02]); g.add(decal); }
-  }, undefined, () => {});
-
   // The vault holds Mia's balance as a short row of five small $0.20 coins on top of the safe. Settlement takes one away.
   // The same geometry, scaled up, is the coin that flies: the moving money is the big thing, the stack is the small thing.
-  const coinGeo = new THREE.SphereGeometry(0.3, 32, 16); coinGeo.scale(1, 0.2, 1);
+  const coinGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.1, 40);
   coins = new THREE.InstancedMesh(coinGeo, matte(0xE2B45A, { roughness:0.35, metalness:0.6 }), 12);
   coins.count = 0; coins.castShadow = true; scene.add(coins);
-  // Real coin (Sketchfab, CC-BY): lay it flat, size it like the disc it replaces, tint it gold, swap it into the stack.
-  new GLTFLoader().load("assets/coins/coins.glb", gltf => {
-    let src = null; gltf.scene.updateMatrixWorld(true); gltf.scene.traverse(o => { if (o.isMesh && !src) src = o; });
-    if (!src) return;
-    const geo = src.geometry.clone().applyMatrix4(src.matrixWorld); geo.computeBoundingBox();
-    const sz = geo.boundingBox.getSize(new THREE.Vector3());
-    if (sz.x < sz.y && sz.x < sz.z) geo.rotateZ(Math.PI / 2); else if (sz.z < sz.y && sz.z < sz.x) geo.rotateX(Math.PI / 2);
-    geo.computeBoundingBox(); geo.center(); const s2 = geo.boundingBox.getSize(new THREE.Vector3());
-    geo.scale(0.6 / Math.max(s2.x, s2.z), 0.1 / s2.y, 0.6 / Math.max(s2.x, s2.z));
-    const m = src.material.clone(); m.color = new THREE.Color(0xE9BE63); m.envMapIntensity = 0.8;
-    coins.geometry.dispose(); coins.geometry = geo; coins.material = m;
-  });
   // The Forage mark stamped on both faces of every moving coin: a flat mark in brand colours, and a white one for $FORAGE tokens.
   stamp = markMesh(0.26, [0, 0, 0]); stamp.rotation.x = -Math.PI / 2; stamp.position.set(0, 0.06, 0.1);
   const white = matte(0xffffff, { roughness:0.4 });
@@ -492,13 +728,13 @@ if (gl) {
 
   // The tree's leaves: clusters of coins hanging along the upper part of each branch (LEAF_C is where along the branch each
   // cluster sits, LEAF_N how many coins it holds), tinted per branch. Each branch's leaves are kept in tip order, so thinning takes the tip first.
-  const LEAF_C = { searchco:[0.6, 0.74, 0.88, 1.0], forage:[0.66, 1.0], scout:[0.64, 1.0] }, LEAF_N = { searchco:12, forage:8, scout:9 }, LEAF_R = { searchco:0.36, forage:0.3, scout:0.3 };
+  const LEAF_C = { searchco:[0.6, 0.74, 0.88, 1.0], forage:[0.66, 1.0], scout:[0.64, 1.0] }, LEAF_N = { searchco:12, forage:8, scout:9 }, LEAF_R = { searchco:0.3, forage:0.24, scout:0.24 };
   for (const k of Object.keys(TREE)) {
     const ts = LEAF_C[k].flatMap(c => Array.from({ length:LEAF_N[k] }, () => c + (rnd() - 0.5) * 0.08)).sort((a, b) => a - b);
     for (const t of ts) {
       const pos = TREE[k].getPoint(Math.min(1, t)), a = rnd() * 6.283, b = rnd() * 6.283, d = LEAF_R[k] * Math.cbrt(rnd());
       pos.x += d * Math.cos(a) * Math.sin(b); pos.y += d * Math.cos(b) - 0.08; pos.z += d * Math.sin(a) * Math.sin(b);
-      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2 + (rnd() - 0.5) * 0.5, rnd() * 6.283, (rnd() - 0.5) * 0.4));
+      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2 + (rnd() - 0.5) * 0.25, rnd() * 6.283, (rnd() - 0.5) * 0.2));
       LEAF.push({ k, pos, q, ph:rnd() * 6.283, on:true });
     }
   }
@@ -555,12 +791,26 @@ if (gl) {
 
   // The trail: one dotted ant-trail on the ground from Mia to the fork, then three branches shaped like the mark.
   // Segment n runs from station n to station n+1; segment 5 is the fork. Dots under a party are dropped.
-  const STN = [{ n:1, w:"Start", at:NODES.mia.pos, mk:[0, 1.3] }, { n:2, w:"Fund", at:NODES.vault.pos, mk:[0, 1.3] }, { n:3, w:"Call", at:NODES.searchco.pos, mk:[0, 1.3] }, { n:4, w:"Sign", at:SIGN_AT, mk:[0, 1.3] }, { n:5, w:"Settle", at:FORK, mk:[-1.2, 0.9] }];
+  const STN = [{ n:1, w:"Start", f:"Mia's agent, inside Scout", at:NODES.mia.pos, mk:[0, 1.3] }, { n:2, w:"Fund", f:"$1.00 into one vault", at:NODES.vault.pos, mk:[0, 1.3] }, { n:3, w:"Call", f:"5 calls, $0.0030 to $0.0260", at:NODES.searchco.pos, mk:[0, 1.3] }, { n:4, w:"Sign", f:"a running total, nothing paid", at:SIGN_AT, mk:[0, 1.3] }, { n:5, w:"Settle", f:"91% · 4% · 5%", at:FORK, mk:[-1.2, 0.9] }];
   // The trail loops around the tree: left side, behind, right side, then back in to the tree's base.
   const trail = new THREE.CatmullRomCurve3([[-7.2, 0.6], [-5.8, -1.2], [-3.7, -0.5], [-1.6, -1.7], [0.3, -2.4], [2.2, -2.1], [3.6, -1.3], [5.0, 0.9], [3.0, 2.0], [FORK[0], FORK[2]]].map(([x, z]) => V([x, 0.04, z])));
   const KEEP = [[NODES.mia.pos, 1.0], [NODES.scout.pos, 0.65], [NODES.vault.pos, 1.1], [NODES.searchco.pos, 0.95], [SIGN_AT, 0.35], [FORK, 0.5]];
   const clear = pts => pts.filter(p => KEEP.every(([a, r]) => Math.hypot(p.x - a[0], p.z - a[2]) > r));
   const tpts = trail.getSpacedPoints(120);
+  // Ants: a stream of small packets walking the trail while nothing else is happening, so the market is alive before and after the story.
+  const ANTS = 28, ants = new THREE.InstancedMesh(new THREE.SphereGeometry(0.055, 10, 8), matte(0x2A2A2A), ANTS);
+  const antT = Array.from({ length:ANTS }, (_, i) => i / ANTS), aS = new THREE.Vector3(); let antA = 0;
+  scene.add(ants);
+  antsTick = dt => {
+    const want = (ch === 0 || ch === CH.length - 1) && !busy && dots.visible ? 1 : 0;
+    antA += (want - antA) * (1 - Math.exp(-dt * 3));
+    for (let i = 0; i < ANTS; i++) {
+      if (!reduced) antT[i] = (antT[i] + dt * 0.03) % 1;
+      trail.getPointAt(antT[i], _p); _p.y = 0.09; aS.setScalar(antA);
+      ants.setMatrixAt(i, _m.compose(_p, _q, aS));
+    }
+    ants.instanceMatrix.needsUpdate = true; ants.visible = antA > 0.01;
+  };
   // Segment n runs from the sample nearest station n to the one nearest station n+1 (the trail doubles back in x, so split by index).
   const near = at => tpts.reduce((b, p, i) => Math.hypot(p.x - at[0], p.z - at[2]) < Math.hypot(tpts[b].x - at[0], tpts[b].z - at[2]) ? i : b, 0);
   const cut = STN.map(st => near(st.at));
@@ -577,7 +827,7 @@ if (gl) {
   dots = new THREE.InstancedMesh(new THREE.CircleGeometry(0.07, 14), new THREE.MeshBasicMaterial({ transparent:true, opacity:0.95, depthWrite:false }), total);
   for (const seg of SEG) seg.pts.forEach((p, i) => { dots.setMatrixAt(seg.i0 + i, _m.compose(p, _q.setFromAxisAngle(X, -Math.PI / 2), _s)); dots.setColorAt(seg.i0 + i, _c.setHex(0xffffff)); });
   _q.identity(); dots.renderOrder = 2; scene.add(dots);
-  for (const st of STN) { const el = document.createElement("div"); el.className = "mk"; el.innerHTML = `<span class="n">${st.n}</span>${st.w}`; labelsEl.appendChild(el); markers[st.n] = { el, at:[st.at[0] + st.mk[0], 0.04, st.at[2] + st.mk[1]] }; }
+  for (const st of STN) { const el = document.createElement("div"); el.className = "mk st"; el.innerHTML = `<span class="n">${st.n}</span><span class="w">${st.w}</span><span class="f">${st.f}</span>`; labelsEl.appendChild(el); markers[st.n] = { el, at:[st.at[0] + st.mk[0], 0.04, st.at[2] + st.mk[1]], chap:st.n + 2 }; }
   // Payee pads at the three branch tips: a flat disc in the lane colour and a name. They hide with the trail.
   pads = new THREE.Group(); scene.add(pads);
   for (const [k, pct] of [["searchco", 91], ["forage", 4], ["scout", 5]]) {
@@ -667,7 +917,7 @@ if (gl) {
     const phone = innerWidth <= 800, r = story.getBoundingClientRect();
     camera.fov = phone ? 62 : 57;
     if (phone) camera.setViewOffset(W, H, 0, r.height * 0.35, W, H);
-    else camera.setViewOffset(W, H, -((r.right + W - 180) / 2 - W / 2), 0, W, H);
+    else camera.setViewOffset(W, H, -((r.right + W - 60) / 2 - W / 2), 0, W, H);
     camera.updateProjectionMatrix();
   };
   new ResizeObserver(frameCamera).observe(map);
@@ -727,14 +977,6 @@ if (gl) {
     const k = pick(e);
     if (k && k === target()) userAct();
   });
-  // Phone: a vertical swipe on the ground turns the page.
-  let touch0 = null;
-  map.addEventListener("touchstart", e => { touch0 = [e.touches[0].clientX, e.touches[0].clientY]; }, { passive:true });
-  map.addEventListener("touchend", e => {
-    if (!touch0 || drag || performance.now() - dragEnded < 150) return;
-    const dx = e.changedTouches[0].clientX - touch0[0], dy = e.changedTouches[0].clientY - touch0[1]; touch0 = null;
-    if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) { stopWatch(); goTo(ch + (dy < 0 ? 1 : -1)); }
-  }, { passive:true });
 }
 
 function place(el, v, dy, below) {
@@ -756,9 +998,10 @@ const ease = k => k < .5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
 function frame() {
   if (!running) return;
   requestAnimationFrame(frame);
-  const dt = Math.min(clock.getDelta(), 0.05); time += dt;
+  const raw = clock.getDelta(), dt = Math.min(raw, 0.05), dtw = Math.min(raw, 0.25); time += dt;
   if (web.visible) web.userData.tick(dt);
   leaves.userData.tick();
+  if (antsTick) antsTick(dt);
   const now = performance.now();
   for (let i = flights.length - 1; i >= 0; i--) {
     const f = flights[i], k = (now - f.t0) / f.ms, e = (f.ease || ease)(Math.min(1, k));
@@ -801,7 +1044,7 @@ function frame() {
   dots.instanceColor.needsUpdate = true;
   for (const n in markers) {
     const st = rs.done.includes(+n) ? 1 : +n === rs.on ? 2 : 0;
-    const cls = "mk" + (st === 1 ? " done" : st === 2 ? " on" : "") + (dots.visible ? "" : " hide");
+    const cls = "mk st" + (st === 1 ? " done" : st === 2 ? " on" : "") + (dots.visible ? "" : " hide") + (Math.abs(prog - markers[n].chap) < 0.55 ? " near" : "");
     if (markers[n].el.className !== cls) markers[n].el.className = cls;
   }
   const t = target();
@@ -823,14 +1066,15 @@ function frame() {
     camera.position.lerp(chase.cam, 1 - Math.exp(-dt * 3));
     _p.copy(chase.mid).lerp(chase.mesh.position, 0.45); focus.lerp(_p, 1 - Math.exp(-dt * 5));
     cam.to = null; cam.base = null;
-  } else if (cam.to && !cam.user) {
-    const k = Math.min(1, (now - cam.t0) / cam.ms), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
-    camera.position.lerpVectors(cam.from.p, cam.to.p, e); focus.lerpVectors(cam.from.l, cam.to.l, e);
-    if (k >= 1) { cam.base = cam.to; cam.to = null; cam.t1 = now; }
-  } else if (cam.base && !cam.user && !reduced && !small) {
-    const g = Math.min(1, (now - cam.t1) / 4000) * cam.amp;
-    _v.subVectors(cam.base.p, cam.base.l).applyAxisAngle(UP, Math.sin(time * 0.12) * g); _v.y += Math.sin(time * 0.17) * g * 0.6;
-    camera.position.copy(cam.base.l).add(_v);
+  } else if (!cam.user) {
+    // Walk the rail: the camera eases toward the scroll position, with a slow breath around it when the viewer rests.
+    railT += (prog - railT) * (reduced ? 1 : 1 - Math.exp(-dtw * 2.2));
+    const u = Math.max(0, Math.min(1, railT / (CH.length - 1)));
+    RAIL_P.getPoint(u, _rp); RAIL_L.getPoint(u, _rl);
+    if (small) _rp.sub(_rl).multiplyScalar(1.7).add(_rl);
+    if (!reduced && !small) { const g = (cam.amp ?? 0.05) * Math.min(1, Math.abs(prog - railT) < 0.02 ? 1 : 0); _v.subVectors(_rp, _rl).applyAxisAngle(UP, Math.sin(time * 0.12) * g); _v.y += Math.sin(time * 0.17) * g * 0.6; _rp.copy(_rl).add(_v); }
+    if (reduced) { camera.position.copy(_rp); focus.copy(_rl); }
+    else { camera.position.lerp(_rp, 1 - Math.exp(-dtw * 3)); focus.lerp(_rl, 1 - Math.exp(-dtw * 4)); }
   }
   // Slight parallax: the camera's aim drifts a little toward the mouse.
   _v.copy(focus); if (!reduced) { _v.x += par.x * 0.22; _v.y -= par.y * 0.14; }
@@ -844,8 +1088,7 @@ function frame() {
 }
 function start() { if (running || !gl) return; running = true; clock.getDelta(); requestAnimationFrame(frame); }
 function stop() { running = false; }
-let visible = false;
-new IntersectionObserver(([e]) => { visible = e.isIntersecting; visible && !document.hidden ? start() : stop(); }).observe(map);
+let visible = true;
 document.addEventListener("visibilitychange", () => document.hidden ? stop() : visible && start());
 
 // Where a flight leaves from or lands: above the party's head, or just above the vault's coin row.
@@ -918,14 +1161,7 @@ function fly(a, b, mesh, ms, hop, o) {
 
 // Ease the camera to a shot. With reduced motion it cuts. While catching up it waits for the chapter's own shot.
 // On a phone the camera stands further back so the wide trail fits.
-function shot([p, l, amp, far = 1.45], ms = 1800) {
-  if (!gl || quick) return;
-  const to = { p:V(p), l:V(l) }; cam.amp = amp;
-  if (small) to.p.sub(to.l).multiplyScalar(far).add(to.l);
-  if (reduced) { camera.position.copy(to.p); focus.copy(to.l); controls.target.copy(to.l); cam.base = null; return; }
-  cam.from = { p:camera.position.clone(), l:focus.clone() }; cam.to = to; cam.t0 = performance.now(); cam.ms = ms * pace;
-  lastShot = arguments[0];
-}
+function shot(sh) { lastShot = sh; cam.amp = sh[2]; } // the rail owns the camera now; chapters only record their drift amplitude
 
 // Which trail segments are finished and which one is live, from the state plus what the busy step is doing.
 function routeState() {
@@ -1107,7 +1343,7 @@ function show(i, first = false) {
     for (const el of problemPills) el.classList.toggle("hide", i !== 1);
     for (const w of webMarks) w.el.classList.toggle("hide", i !== 2);
     selfPill.classList.toggle("hide", i !== 8);
-    if (i === 0) { if (first && !reduced) { camera.position.set(0.2, 6.5, 19); focus.set(0.2, 0.7, -0.5); } shot(SHOT.hero, first ? 7000 : 2400); }
+    if (i === 0) { if (first && !reduced) { camera.position.set(0.2, 7.5, 22); focus.set(0.2, 0.7, -0.5); } shot(SHOT.hero); }
     else if (i === 1) shot(SHOT.problem, 2200);
     else if (i === 2) shot(SHOT.big, 2400);
     else if (i === 3) shot(SHOT.start, 1800);
@@ -1121,19 +1357,19 @@ function show(i, first = false) {
   if (i === 8) rain();
   render();
 }
-function replay() { stopWatch(); reset(); show(0); }
+function replay() { stopWatch(); reset(); show(0); turn(0); }
 
 // Watch the story: rest on each chapter, then turn the page, with flights at the slower pace. Any touch on the navigator stops it.
 // The settle chapter pulls the lever itself first, then rests on the split.
 async function watch() {
   if (playing) { stopWatch(); return; }
-  if (ch === CH.length - 1) { reset(); show(0); }
+  if (ch === CH.length - 1) { reset(); show(0); turn(0); }
   playing = true; pace = reduced ? 1 : PLAY_PACE; render();
   while (playing && ch < CH.length - 1) {
     if (ch === 7 && s.step === 2) { busy = true; render(); await settle(); busy = false; phase = null; render(); }
     await hold(reduced ? 1200 : CH[ch].hold);
     if (!playing) break;
-    await goTo(ch + 1);
+    turn(ch + 1); await goTo(ch + 1);
   }
   stopWatch();
 }
@@ -1224,35 +1460,73 @@ function render() {
   $("split").classList.toggle("show", showSplit);
 }
 
-// Navigator: one dot per chapter, keyboard arrows, wheel, swipe, prev and next.
+// The scroll track: one spacer per chapter. The spacer in the middle of the window is the chapter the scene shows.
+// Buttons, keys and the navigator scroll the track; the observer below turns the page. A viewer who scrolls past
+// several chapters at once is caught up instantly (goTo's quick mode), then shown the chapter they landed on.
+const secs = [...document.querySelectorAll("#track .ch")];
+const site = $("site"), hint = $("hint");
+function turn(i) {
+  i = Math.max(0, Math.min(CH.length - 1, i));
+  secs[i].scrollIntoView({ behavior:reduced ? "auto" : "smooth", block:"start" });
+}
+let want = 0, syncing = false;
+async function sync() {
+  if (syncing) return; syncing = true;
+  while (want !== ch && !busy) await goTo(want);
+  syncing = false;
+}
+const chObs = new IntersectionObserver(es => {
+  for (const e of es) if (e.isIntersecting) { want = +e.target.dataset.ch; sync(); }
+}, { rootMargin:"-45% 0px -45% 0px" });
+secs.forEach(el => chObs.observe(el));
+setInterval(sync, 200);
+
+// Site mode: once the site below has covered the stage, the scene pauses and its cards hide; scrolling back up resumes.
+let siteMode = false;
+function progress() {
+  const mid = innerHeight / 2;
+  for (let i = 0; i < secs.length; i++) {
+    const r = secs[i].getBoundingClientRect();
+    if (mid < r.bottom || i === secs.length - 1) return Math.max(0, Math.min(secs.length - 1, i + (mid - r.top) / r.height - 0.5));
+  }
+  return 0;
+}
+function checkSite() {
+  prog = progress();
+  const top = site.getBoundingClientRect().top;
+  const on = top < innerHeight * 0.35;
+  if (on !== siteMode) { siteMode = on; document.body.classList.toggle("site", on); visible = !on; on ? stop() : start(); }
+  // Header link for the section in view.
+  let cur = "top";
+  for (const a of document.querySelectorAll(".top .links a")) { const t = document.getElementById(a.dataset.sec); if (t && t.getBoundingClientRect().top <= innerHeight * 0.4) cur = a.dataset.sec; }
+  for (const a of document.querySelectorAll(".top .links a")) a.classList.toggle("on", a.dataset.sec === cur);
+  hint.classList.toggle("off", scrollY > innerHeight * 0.25);
+}
+addEventListener("scroll", checkSite, { passive:true }); addEventListener("resize", checkSite);
+
 const navEl = $("nav");
 CH.forEach((c, i) => {
   const b = document.createElement("button"); b.type = "button";
   b.innerHTML = `<span>${c.label}</span><i class="d"></i>`; b.setAttribute("aria-label", `Chapter ${i + 1}: ${c.label}`);
-  b.addEventListener("click", () => { stopWatch(); goTo(i); b.blur(); });
+  b.addEventListener("click", () => { stopWatch(); turn(i); b.blur(); });
   navEl.appendChild(b);
 });
-$("prev").addEventListener("click", () => { stopWatch(); goTo(ch - 1); });
-$("next").addEventListener("click", () => { stopWatch(); goTo(ch + 1); });
-$("cta").addEventListener("click", () => { if (ch === 0) { stopWatch(); goTo(1); } else replay(); });
+$("prev").addEventListener("click", () => { stopWatch(); turn(ch - 1); });
+$("next").addEventListener("click", () => { stopWatch(); turn(ch + 1); });
+$("cta").addEventListener("click", () => { if (ch === 0) { stopWatch(); turn(1); } else replay(); });
 $("watch").addEventListener("click", watch);
+$("watchTop").addEventListener("click", () => { if (siteMode || ch === CH.length - 1) { reset(); show(0); turn(0); setTimeout(watch, 700); } else watch(); });
+$("replayBottom").addEventListener("click", () => { replay(); });
 addEventListener("keydown", e => {
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
-  if (["ArrowRight", "ArrowDown", "PageDown"].includes(e.key)) { e.preventDefault(); stopWatch(); goTo(ch + 1); }
-  else if (["ArrowLeft", "ArrowUp", "PageUp"].includes(e.key)) { e.preventDefault(); stopWatch(); goTo(ch - 1); }
-  else if (e.key === "Home") { stopWatch(); goTo(0); }
-  else if (e.key === "End") { stopWatch(); goTo(CH.length - 1); }
+  if (e.metaKey || e.ctrlKey || e.altKey || siteMode) return;
+  if (["ArrowRight", "PageDown"].includes(e.key)) { e.preventDefault(); stopWatch(); turn(ch + 1); }
+  else if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); stopWatch(); turn(ch - 1); }
 });
-let wheelAcc = 0, wheelAt = 0, wheelTurn = 0;
-addEventListener("wheel", e => {
-  const now = performance.now();
-  if (now - wheelAt > 300) wheelAcc = 0;
-  wheelAt = now; wheelAcc += e.deltaY;
-  if (now - wheelTurn > 900 && Math.abs(wheelAcc) > 60) { wheelTurn = now; stopWatch(); goTo(ch + Math.sign(wheelAcc)); wheelAcc = 0; }
-}, { passive:true });
 
 reset();
 show(0, true);
+checkSite();
+if (!siteMode) start();
 </script>
 </body>
 </html>
