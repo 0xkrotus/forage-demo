@@ -97,7 +97,8 @@ camera → eased toward RAIL_P(u), focus toward RAIL_L(u), plus a slow breath wh
 There are no camera cuts. `shot()` is kept only so the chapter code still compiles; it now just records the drift
 amplitude. The one exception is the **chase**: while a packet, coin or signature flies, the camera follows it
 (`chase`), then eases back onto the rail. Dragging the ground (OrbitControls) overrides the rail until you let go.
-On phones the camera stands 1.7× further back along the same look vector.
+On phones the camera stands further back along the same look vector, by a per-chapter amount (`RAIL_PHONE`), and the
+flight close-up stands 1.6× further back.
 
 To reposition a chapter's view, edit its knot. To add a chapter, add a knot *and* a spacer *and* a `CH` entry: all
 three lists must stay the same length and order.
@@ -156,6 +157,10 @@ All in `index.html`. Search for the anchor in the second column.
 | Station placard text | `const STN = [` — `w` is the name, `f` the fact that opens as you arrive |
 | Ants: count, size, speed | `const ANTS`, the sphere radius, `dt * 0.03` in `antsTick` |
 | Tree leaves: how many, where, tint | `LEAF_C`, `LEAF_N`, `LEAF_R`, `TINT` |
+| Leaves that fall per settlement | `LEAF_FALL` (shared by the split: 50 gives 46 / 2 / 3) |
+| How far the vault door opens | `DOOR_OPEN` (radians) |
+| Phone camera distance per chapter | `const RAIL_PHONE = [` (one number per chapter, same order as `RAIL`) |
+| Sound: the tick and the chord | `const sound = {` (off by default; the header toggle is `#sound`) |
 | Stage pool size and tone | `new THREE.CircleGeometry(19, …)` and `0xEFECE4` after `// Ground:` |
 | Lighting | after `// Studio:` (hemisphere, `sun`, `fill`, `environmentIntensity`) |
 | Animation speed | `BASE_PACE` (viewer driving) and `PLAY_PACE` (Watch the story) |
@@ -192,8 +197,8 @@ All in `index.html`. Search for the anchor in the second column.
 - [ ] Replace both `[CONTACT EMAIL]` placeholders with the real address (search the file; both carry a `TODO`).
 - [ ] Decide whether `source/` (the two PDFs) should be public. The "Read the one-pager" button links to it; if the
       PDF stays private, point the button elsewhere or remove it.
-- [ ] Add `brand/favicon` sizes and an OG image (1200×630) and the `<meta property="og:image">` tag; the title and
-      description tags are already in `<head>`.
+- [x] Favicons (`brand/favicon-32.png`, `favicon-512.png`, `apple-touch-icon.png`) and the OG image
+      (`brand/og.png`, 1200×630) with its `<meta>` tags. If the domain changes, update `og:url` and `og:image`.
 - [ ] Run `node tools/shoot.mjs` (section 7) and look at every screenshot. No console errors is the bar.
 - [ ] Open it on a real phone. The card sits at the bottom, the dots along the bottom edge; dragging the search and
       pulling the lever must work with a finger.
@@ -237,19 +242,20 @@ once, then fast, then backwards.
 
 In the order we would do them:
 
-1. **Contact, favicon, OG image** (section 5). Small, and the site is not finished without them.
-2. **The vault door.** The vault is now our own model, so a hinged door is cheap: split the door panel into its own
-   group, rotate it on the lever pull, drop the coins from inside. The biggest moment in the story deserves it.
-3. **Exact leaf thinning.** Settlement thins the tree by a token 9/2/2 leaves today. Make it proportional to the real
-   split so the tree *is* the ledger.
-4. **A real logo pass.** The mark is still a first sketch, and the lockup's wordmark is live text in Arimo; outline it
-   before it goes anywhere that cannot load the font.
-5. **Phone layout pass.** It works; it is not designed. The card and the dots want a bottom sheet, and the rail wants
-   its own knots for portrait.
-6. **A live-market mode after the story.** The ants are the seed of it: many agents, many calls, a ticker of
-   settlements across the real catalog once there is one.
-7. **Audio.** One soft tick per call, a chord on settlement, off by default. Cartier's Watches & Wonders site is the
-   reference for restraint.
+Done (October 2026): favicons and the OG image; the vault door (hinged, opens on the lever pull, coins leave from
+the gold inside); leaf thinning by the real split (`LEAF_FALL`); the lockup's wordmark outlined to a path; the phone
+pass (bottom sheet, dots on its foot, `RAIL_PHONE`); sound, off by default.
+
+Still open, in order:
+
+1. **Contact address** (section 5). The site is not finished without it.
+2. **Fast scrolling past Call.** One scroll past Call before the viewer has made the calls plays all five at full
+   speed (about 29 s) while the page has moved on. `goTo` animates any jump of one chapter; a scroll jump should catch
+   up instantly (`quick`) like a jump of several.
+3. **The mark itself.** The wordmark is outlined, but the forked root is still a first sketch.
+4. **A live-market mode after the story.** The ants are the seed of it: many agents, many calls, a ticker of
+   settlements across the real catalog once there is one. Wait for the catalog; an invented ticker breaks the
+   facts-over-adjectives rule.
 
 ---
 
