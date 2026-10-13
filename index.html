@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Forage demo: one balance, three payees</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Forage: the open market for AI tools</title>
+<link rel="icon" href="brand/mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700&family=Geist+Mono:wght@400;500&family=Arimo:wght@400;700&display=swap" rel="stylesheet">
 <script type="importmap">
 { "imports": {
   "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
@@ -15,244 +16,226 @@
 </script>
 <style>
   :root {
-    --ink:#2a2238; --body:#4b4260; --muted:#7f7596; --rule:rgba(42,34,56,.12);
-    --glass:rgba(255,255,255,.42); --glass-b:rgba(255,255,255,.7);
+    --bg:#FFFEFB; --ink:#111111; --body:#374151; --muted:#6B7280; --line:#E5E3DD; --card:rgba(255,255,255,.94);
     --forage:#6D28D9; --supplier:#0B5563; --buyer:#C2410C; --app:#4B5563;
-    --serif:"Instrument Serif", Georgia, serif; --text:"Newsreader", Georgia, serif;
-    --ui:"Inter Tight", "Helvetica Neue", Arial, sans-serif; --mono:"JetBrains Mono", Menlo, monospace;
+    --display:"Oxanium", "Arimo", Helvetica, Arial, sans-serif; --text:"Arimo", "Inter", "Helvetica Neue", Arial, sans-serif; --mono:"Geist Mono", Menlo, monospace;
   }
   * { box-sizing:border-box; }
-  body { margin:0; color:var(--body); font:15px/1.5 var(--text); -webkit-font-smoothing:antialiased;
-    background:linear-gradient(180deg,#d6caf1 0%,#eed8e7 40%,#f8ddcc 65%,#d3dbf0 100%) fixed; }
-  main { max-width:1120px; margin:0 auto; padding:28px 20px 56px; }
-  .mark { font:italic 400 40px/1 var(--serif); letter-spacing:-.5px; color:var(--ink); }
-  .tag { font:500 10px var(--mono); letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-top:8px; }
-  .lede { font:400 26px/1.15 var(--serif); color:var(--ink); margin:16px 0 0; letter-spacing:-.01em; }
-  .lede i, .caption b i, .legend b i { font-style:italic; color:var(--forage); }
-  .sub { color:var(--muted); margin:8px 0 0; font-size:14px; font-style:italic; }
+  html, body { height:100%; margin:0; overflow:hidden; }
+  body { color:var(--body); font:15px/1.5 var(--text); -webkit-font-smoothing:antialiased; background:var(--bg); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:0 16px 40px -28px rgba(17,17,17,.35); }
+  .hide { display:none !important; }
+  /* Numbered step chip, as on Antseed's "You're 3 steps from" cards: a mono number in a small rounded square. */
+  .chip { display:inline-grid; place-items:center; width:20px; height:20px; border-radius:5px; background:var(--ink); color:#fff; font:500 11px var(--mono); flex:0 0 auto; }
 
-  .eyebrow { display:flex; align-items:center; gap:10px; font:500 10px var(--mono); letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
-  .eyebrow .num { width:18px; height:18px; border-radius:50%; border:1px solid currentColor; display:grid; place-items:center; font-size:9px; letter-spacing:0; }
-  .eyebrow::after { content:""; width:40px; height:1px; background:linear-gradient(90deg, currentColor, transparent); opacity:.6; }
-
-  .glass { background:var(--glass); backdrop-filter:blur(18px) saturate(1.3); -webkit-backdrop-filter:blur(18px) saturate(1.3); border:1px solid var(--glass-b); border-radius:22px; box-shadow:0 24px 60px -30px rgba(42,34,56,.4), inset 0 1px 0 rgba(255,255,255,.7); }
-
-  .bar { display:flex; align-items:center; margin:22px 0 0; }
-  .steps { display:flex; align-items:center; flex:1; min-width:0; }
-  .step { display:flex; align-items:center; gap:8px; font:500 10px var(--mono); letter-spacing:.14em; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
-  .dot { width:8px; height:8px; border-radius:50%; border:1px solid rgba(42,34,56,.35); background:rgba(255,255,255,.5); flex:0 0 auto; transition:transform .3s, box-shadow .3s; }
-  .step.done { color:var(--ink); } .step.done .dot { background:var(--ink); border-color:var(--ink); }
-  .step.on { color:var(--forage); } .step.on .dot { background:var(--forage); border-color:var(--forage); transform:scale(1.4); box-shadow:0 0 0 5px rgba(109,40,217,.14), 0 0 18px rgba(109,40,217,.5); }
-  .line { flex:1; height:1px; background:rgba(42,34,56,.15); margin:0 10px; min-width:12px; }
-
-  .caption { margin:18px 0 0; min-height:92px; }
-  .caption b { display:block; font:400 26px/1.15 var(--serif); color:var(--ink); margin-top:10px; letter-spacing:-.01em; }
-  .caption p { margin:8px 0 0; max-width:760px; }
-  .caption .act { display:flex; align-items:center; gap:8px; margin-top:12px; font:500 13px var(--ui); color:var(--forage); }
-  .caption .act::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--forage); box-shadow:0 0 10px var(--forage); animation:beat 1.4s ease-in-out infinite; flex:0 0 auto; }
-  .caption .act.warn { color:var(--buyer); } .caption .act.warn::before { background:var(--buyer); box-shadow:0 0 10px var(--buyer); }
-  .caption .act:empty { display:none; }
-  @keyframes beat { 0%,100% { transform:scale(.7); opacity:.5; } 50% { transform:scale(1.15); opacity:1; } }
-  @media (prefers-reduced-motion:reduce) { .caption .act::before { animation:none; } }
-  .controls { display:flex; gap:10px; margin-top:16px; }
-  button { font:500 14px var(--ui); border-radius:999px; padding:11px 20px; cursor:pointer; color:var(--ink); border:1px solid rgba(255,255,255,.85); background:rgba(255,255,255,.55); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); box-shadow:0 10px 24px -14px rgba(42,34,56,.45), inset 0 1px 0 #fff; transition:transform .2s, box-shadow .2s, background .2s; }
-  button:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 14px 28px -14px rgba(42,34,56,.55), inset 0 1px 0 #fff; }
-  #go { background:rgba(42,34,56,.82); color:#fff; border-color:rgba(255,255,255,.35); }
-  #go:hover:not(:disabled) { background:rgba(109,40,217,.85); }
-  button:disabled { opacity:.4; cursor:default; }
-
-  .stage { display:grid; grid-template-columns:minmax(0,1.9fr) minmax(0,1fr); gap:24px; margin-top:24px; align-items:start; }
-  .card { padding:18px 20px; min-width:0; }
-
-  /* The 3D map. One label pill per party, placed over the canvas by projecting its position. */
-  .map { position:relative; aspect-ratio:16/10; overflow:hidden; border-radius:22px; }
+  /* The 3D world fills the window. Everything else floats over it as cards. */
+  .map { position:fixed; inset:0; z-index:0; }
   .map canvas { position:absolute; inset:0; width:100%; height:100%; display:block; cursor:grab; }
   .map canvas:active { cursor:grabbing; }
   .map.hover canvas { cursor:pointer; }
   #labels { position:absolute; inset:0; pointer-events:none; }
-  .lbl { position:absolute; left:0; top:0; display:flex; align-items:center; gap:8px; padding:6px 12px; background:rgba(255,255,255,.5); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.8); border-radius:999px; box-shadow:0 10px 24px -14px rgba(42,34,56,.45), inset 0 1px 0 #fff; white-space:nowrap; line-height:1.2; will-change:transform; font-family:var(--ui); }
-  .lbl b { font-size:12px; font-weight:600; color:var(--c); }
-  .lbl .bal { font-size:13px; font-weight:500; color:var(--ink); font-variant-numeric:tabular-nums; }
-  .lbl .delta { position:absolute; left:50%; top:100%; transform:translate(-50%, 6px); font-size:12px; font-style:normal; font-weight:600; color:var(--c); opacity:0; transition:opacity .35s; font-variant-numeric:tabular-nums; }
+  .lbl { position:absolute; left:0; top:0; display:grid; grid-template-columns:auto auto; align-items:baseline; gap:1px 9px; padding:5px 10px 4px; background:var(--card); border:1px solid var(--line); border-radius:10px; box-shadow:0 10px 24px -16px rgba(17,17,17,.35); white-space:nowrap; line-height:1.2; will-change:transform; font-family:var(--text); }
+  .lbl b { font-size:11px; font-weight:700; color:var(--c); }
+  .lbl .bal { display:inline-block; font:500 11px var(--mono); color:var(--ink); font-variant-numeric:tabular-nums; }
+  .lbl .desc small { display:block; font:500 9px var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
+  .lbl .role { grid-column:1 / -1; font:400 8px var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .lbl .delta { position:absolute; left:50%; top:100%; transform:translate(-50%, 5px); font:500 11px var(--mono); color:var(--c); opacity:0; transition:opacity .35s; font-variant-numeric:tabular-nums; }
   .lbl .delta.show { opacity:1; }
-  .lbl .desc { display:none; position:absolute; left:50%; top:100%; transform:translate(-50%, 8px); font:13px/1.45 var(--text); color:var(--body); background:rgba(255,255,255,.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border:1px solid rgba(255,255,255,.85); border-radius:14px; padding:9px 12px; white-space:normal; width:230px; text-align:left; box-shadow:0 16px 32px -14px rgba(42,34,56,.45); }
-  .lbl .desc small { display:block; font:500 9px var(--mono); letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
+  .lbl .desc { display:none; position:absolute; left:50%; top:100%; transform:translate(-50%, 8px); font:13px/1.45 var(--text); color:var(--body); background:#fff; border:1px solid var(--line); border-radius:10px; padding:9px 12px; white-space:normal; width:230px; text-align:left; box-shadow:0 16px 32px -14px rgba(17,17,17,.3); }
   .lbl.hot .desc { display:block; }
   .lbl.hot .delta { opacity:0; }
-  .hint { margin:10px 0 0; font:400 11px var(--mono); letter-spacing:.04em; color:var(--muted); }
-  /* No WebGL: the same pills, laid out as a plain grid with their roles shown. */
-  .map.nogl { aspect-ratio:auto; }
-  .map.nogl canvas, .map.nogl + .hint { display:none; }
+  .lbl.land .bal { animation:land .7s cubic-bezier(.2,.8,.2,1); }
+  @keyframes land { 0% { transform:scale(1); } 35% { transform:scale(1.4); } 100% { transform:scale(1); } }
+  /* Pills that ride on moving things: the request packet, the result, the coins, the signed total, the tokens. */
+  .tag3 { position:absolute; left:0; top:0; padding:4px 9px; border-radius:7px; background:var(--card); border:1px solid var(--line); box-shadow:0 8px 20px -12px rgba(17,17,17,.4); font:400 11px var(--text); color:var(--c, var(--ink)); white-space:nowrap; max-width:250px; overflow:hidden; text-overflow:ellipsis; will-change:transform; }
+  .tag3.sig { padding:7px 14px; border-radius:10px; text-align:center; line-height:1.25; }
+  .tag3.sig b { display:block; font:500 9px var(--mono); letter-spacing:.12em; text-transform:uppercase; color:var(--forage); }
+  .tag3.sig .amt { display:block; font:600 22px/1.1 var(--display); color:var(--ink); font-variant-numeric:tabular-nums; margin-top:2px; }
+  .tag3.sig small { display:block; font:400 10px var(--mono); color:var(--muted); }
+  .tag3.dim { color:var(--muted); }
+  /* Station markers on the trail, payee pads at the fork, and the column names in the bigger picture. */
+  .mk { position:absolute; left:0; top:0; display:flex; align-items:center; gap:6px; font:500 10px var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); white-space:nowrap; will-change:transform; transition:color .4s; }
+  .mk .n { width:18px; height:18px; border-radius:5px; border:1px solid var(--line); display:grid; place-items:center; font-size:10px; letter-spacing:0; background:#fff; color:var(--ink); transition:background .4s, color .4s, box-shadow .4s, border-color .4s; }
+  .mk.done { color:var(--ink); } .mk.done .n { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .mk.on { color:var(--forage); } .mk.on .n { background:var(--forage); color:#fff; border-color:var(--forage); box-shadow:0 0 0 4px rgba(109,40,217,.14); }
+  .mk.pad { color:var(--c); background:rgba(255,254,251,.92); padding:3px 8px 3px 7px; border-radius:7px; box-shadow:0 6px 16px -10px rgba(17,17,17,.4); } .mk.pad::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--c); }
+  .mk.col { color:var(--ink); font-size:10px; padding:3px 8px; border-radius:6px; background:var(--card); border:1px solid var(--line); }
+  /* No WebGL: the party pills become a plain grid; the story still steps through. */
+  .map.nogl { overflow:auto; padding:90px 20px 300px; }
+  .map.nogl canvas { display:none; }
   .map.nogl #labels { position:static; display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
-  .map.nogl .lbl { position:static; transform:none !important; display:block; border-radius:14px; white-space:normal; }
+  .map.nogl .lbl { position:static; transform:none !important; display:block; border-radius:10px; white-space:normal; }
   .map.nogl .lbl b, .map.nogl .lbl .bal { display:block; }
   .map.nogl .lbl .desc, .map.nogl .lbl .delta { display:block; position:static; transform:none; opacity:1; width:auto; box-shadow:none; border:0; padding:4px 0 0; background:none; }
+  .map.nogl .mk, .map.nogl .tag3 { display:none; }
 
-  .receipt h3 { margin:0; font:400 20px var(--serif); color:var(--ink); }
-  .receipt .hint2 { font-size:13px; font-style:italic; color:var(--muted); margin:2px 0 12px; }
-  .rows { border:1px solid rgba(255,255,255,.8); background:rgba(255,255,255,.35); border-radius:14px; padding:4px 12px; font:13px var(--ui); }
-  .row { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid rgba(42,34,56,.07); }
-  .row:last-child { border-bottom:0; }
-  .row span:first-child { color:var(--muted); }
-  .row span:last-child { color:var(--ink); font-weight:500; text-align:right; }
-  .big { font:400 28px/1 var(--serif); font-variant-numeric:tabular-nums; }
-  .stamp { margin-top:10px; font:500 10px var(--mono); letter-spacing:.14em; text-transform:uppercase; color:var(--supplier); min-height:20px; }
-  .log { list-style:none; padding:0; margin:12px 0 0; font:13px var(--ui); }
-  .log li { padding:6px 0; border-top:1px solid rgba(42,34,56,.07); }
-  .log .q { color:var(--ink); font-weight:500; }
-  .log .r { color:var(--muted); }
+  /* Brand lockup, top left, always: the forked-root mark and the FORAGE wordmark. */
+  .brand { position:fixed; top:20px; left:28px; z-index:3; display:flex; align-items:center; gap:9px; text-decoration:none; color:var(--ink); font:700 21px/1 "Arimo", Helvetica, Arial, sans-serif; letter-spacing:-.05em; }
+  .brand svg { width:28px; height:28px; }
 
-  .split { margin-top:24px; opacity:0; transition:opacity .6s; }
-  .split.show { opacity:1; }
+  /* One compact text block per chapter. */
+  .story { position:fixed; left:28px; top:50%; transform:translateY(-50%); z-index:2; width:min(430px, 34vw); padding:22px 24px; transition:opacity .35s ease, transform .35s ease; }
+  .story.out { opacity:0; transform:translateY(calc(-50% + 14px)); }
+  .eyebrow { display:flex; align-items:center; gap:9px; font:500 10px var(--mono); letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .eyebrow .chip[hidden] { display:none; }
+  .story h1 { margin:12px 0 0; font:600 27px/1.15 var(--display); color:var(--ink); letter-spacing:-.01em; }
+  .story h1 i { font-style:normal; color:var(--forage); }
+  .story .body { margin:10px 0 0; font-size:15px; }
+  .story ul { margin:0; padding:0; list-style:none; }
+  .story li { padding:8px 0; border-top:1px solid var(--line); color:var(--ink); }
+  .story li b { font:600 19px/1 var(--display); color:var(--forage); }
+  .story .act { display:flex; align-items:center; gap:8px; margin:12px 0 0; font:700 13px var(--text); color:var(--forage); }
+  .story .act::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--forage); animation:beat 1.4s ease-in-out infinite; flex:0 0 auto; }
+  .story .act.warn { color:var(--buyer); } .story .act.warn::before { background:var(--buyer); }
+  .story .act:empty { display:none; }
+  .story .note { margin:10px 0 0; font:500 9px var(--mono); letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .story .note:empty { display:none; }
+  @keyframes beat { 0%,100% { transform:scale(.7); opacity:.5; } 50% { transform:scale(1.15); opacity:1; } }
+  .controls { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  button, .btn { font:700 13px var(--text); border-radius:8px; padding:10px 16px; cursor:pointer; color:var(--ink); border:1px solid var(--line); background:#fff; transition:transform .2s, border-color .2s, background .2s; text-decoration:none; line-height:1.2; }
+  button:hover:not(:disabled), .btn:hover { transform:translateY(-1px); border-color:#C9C5BC; }
+  #cta { background:var(--ink); color:#fff; border-color:var(--ink); }
+  #cta:hover:not(:disabled) { background:var(--forage); border-color:var(--forage); }
+  .controls .sm { padding:9px 12px; font-weight:400; }
+  button:disabled { opacity:.4; cursor:default; }
+  [hidden] { display:none !important; }
+
+  /* Chapter navigator on the right edge: dots with short labels, current one lit. */
+  .nav { position:fixed; right:18px; top:50%; transform:translateY(-50%); z-index:3; display:flex; flex-direction:column; gap:12px; align-items:flex-end; padding:14px 12px 14px 16px; border-radius:14px; background:rgba(255,254,251,.78); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(17,17,17,.06); box-shadow:0 10px 30px -18px rgba(17,17,17,.35); }
+  .nav button { display:flex; align-items:center; gap:10px; padding:4px 0; border:0; background:none; box-shadow:none; font:500 10px var(--mono); letter-spacing:.1em; text-transform:uppercase; color:var(--muted); opacity:.85; transform:none !important; border-radius:0; }
+  .nav button .d { width:8px; height:8px; border-radius:50%; border:1px solid #B5B1A8; background:#fff; flex:0 0 auto; transition:transform .3s, box-shadow .3s, background .3s; }
+  .nav button.done { color:var(--ink); } .nav button.done .d { background:var(--ink); border-color:var(--ink); }
+  .nav button.on { color:var(--forage); opacity:1; } .nav button.on .d { background:var(--forage); border-color:var(--forage); transform:scale(1.4); box-shadow:0 0 0 4px rgba(109,40,217,.14); }
+  .nav button:hover { opacity:1; }
+
+  /* The split bar: only once the lever has been pulled. */
+  .split { position:fixed; left:50%; bottom:26px; transform:translateX(-50%); width:min(700px, 56vw); z-index:2; padding:16px 18px; opacity:0; pointer-events:none; transition:opacity .6s; perspective:900px; }
+  .split.show { opacity:1; pointer-events:auto; }
   .split .eyebrow { margin-bottom:12px; }
-  .splitbar { display:flex; height:42px; border-radius:999px; overflow:hidden; font:500 13px var(--ui); color:#fff; border:1px solid rgba(255,255,255,.7); box-shadow:0 14px 30px -14px rgba(42,34,56,.45); }
+  .splitbar { display:flex; height:40px; border-radius:8px; overflow:hidden; font:700 13px var(--text); color:#fff; transform-origin:bottom; }
   .splitbar div { display:flex; align-items:center; padding:0 14px; white-space:nowrap; overflow:hidden; }
-  .legend { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-top:12px; font-size:14px; }
-  .legend b { display:block; font:400 24px/1.1 var(--serif); }
-
-  /* The receipt card tilts toward the mouse and flips per new signature; the split bar rises into view. */
-  .stage { perspective:1400px; }
-  .card { transform-style:preserve-3d; transition:transform .25s ease-out, box-shadow .25s; will-change:transform; }
-  .rows { transform-origin:center; backface-visibility:hidden; }
-  .rows.flip { animation:flip .6s ease-in-out; }
-  @keyframes flip { 0% { transform:perspective(800px) rotateY(0); } 50% { transform:perspective(800px) rotateY(90deg); } 100% { transform:perspective(800px) rotateY(0); } }
-  .split { perspective:900px; }
-  .splitbar { transform-origin:bottom; }
   .split.show .splitbar { animation:rise .9s cubic-bezier(.2,.8,.2,1) both; }
   @keyframes rise { from { transform:rotateX(70deg); opacity:0; } to { transform:rotateX(0); opacity:1; } }
-  @media (prefers-reduced-motion:reduce) { .rows.flip, .split.show .splitbar { animation:none; } .card { transition:none; } }
+  .legend { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-top:12px; font-size:13px; }
+  .legend b { display:block; font:600 19px/1.1 var(--display); font-variant-numeric:tabular-nums; }
 
-  footer { margin-top:32px; font:400 11px var(--mono); letter-spacing:.02em; color:var(--muted); border-top:1px solid var(--rule); padding-top:12px; }
+  footer { position:fixed; left:28px; bottom:14px; z-index:2; font:400 11px var(--mono); color:var(--muted); max-width:min(430px, 34vw); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  footer a { color:var(--muted); }
+
   @media (max-width:800px) {
-    .stage { grid-template-columns:minmax(0,1fr); }
-    .hud { padding:20px; }
-    .step span { display:none; } .step.on span { display:inline; }
-    .legend b { font-size:18px; }
-    .map { aspect-ratio:4/3; }
-    .lbl { padding:3px 8px; gap:5px; } .lbl b { font-size:10px; } .lbl .bal { font-size:11px; } .lbl .delta { font-size:10px; }
+    .brand { top:14px; left:16px; font-size:17px; } .brand svg { width:22px; height:22px; }
+    .story { left:12px; right:12px; top:auto; bottom:52px; transform:none; width:auto; padding:14px 16px; }
+    .story.out { transform:translateY(14px); }
+    .story h1 { font-size:21px; } .story .body, .story li { font-size:13px; } .story li b { font-size:16px; }
+    .controls { margin-top:12px; } button, .btn { padding:9px 12px; font-size:12px; }
+    .nav { right:auto; left:50%; top:auto; bottom:14px; transform:translateX(-50%); flex-direction:row; gap:9px; align-items:center; }
+    .nav button span { display:none; }
+    .split { top:56px; bottom:auto; left:12px; right:12px; width:auto; transform:none; padding:12px; }
+    .legend { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; font-size:12px; } .legend b { font-size:16px; }
+    footer { display:none; }
+    .lbl { padding:3px 8px; gap:0 6px; } .lbl b { font-size:10px; } .lbl .bal { font-size:10px; } .lbl .role { display:none; } .lbl .delta { font-size:10px; }
     .lbl .desc { display:none !important; }
-    .hint { display:none; }
+    .tag3 { font-size:9px; padding:3px 7px; max-width:150px; } .tag3.sig .amt { font-size:16px; } .tag3.sig small { display:none; }
+    .mk { font-size:8px; gap:4px; } .mk .n { width:14px; height:14px; font-size:8px; }
   }
-  /* Desktop: the 3D scene fills the window; story, receipt and split float over it as glass. */
-  @media (min-width:801px) {
-    html, body { height:100%; overflow:hidden; }
-    main { max-width:none; padding:0; }
-    .stage { display:block; margin:0; perspective:none; } /* perspective would trap the fixed children */
-    .map { position:fixed; inset:0; aspect-ratio:auto; border-radius:0; z-index:0; }
-    .hud, .receipt, .split, .hint, footer, .bar { position:fixed; z-index:2; }
-    .hud { top:20px; left:20px; width:min(420px, 32vw); padding:22px 24px; max-height:calc(100vh - 90px); overflow:auto; }
-    .mark { font-size:34px; }
-    .lede { font-size:22px; margin-top:14px; } .sub { display:none; }
-    .caption { min-height:0; margin-top:18px; } .caption b { font-size:22px; } .caption p { font-size:14px; }
-    .bar { right:22px; top:50%; transform:translateY(-50%); margin:0; z-index:3; }
-    .steps { flex-direction:column; align-items:flex-end; gap:18px; }
-    .step span { display:none; }
-    .line { display:none; }
-    .receipt { top:20px; right:56px; width:300px; max-height:calc(100vh - 40px); overflow:auto; }
-    .split { left:calc(min(420px, 32vw) + 40px); right:376px; bottom:20px; margin:0; padding:16px 18px; pointer-events:none; }
-    .split.show { pointer-events:auto; }
-    .legend { font-size:13px; } .legend b { font-size:20px; }
-    .hint { left:20px; bottom:34px; margin:0; max-width:min(420px, 32vw); }
-    footer { left:20px; bottom:12px; margin:0; padding:0; border:0; max-width:calc(min(420px, 32vw)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  @media (prefers-reduced-motion:reduce) {
+    .story, .split, .nav button .d, .lbl .delta { transition:none; }
+    .story.out { transform:translateY(-50%); }
+    .story .act::before, .lbl.land .bal, .split.show .splitbar { animation:none; }
   }
 </style>
 </head>
 <body>
 <main>
-  <section class="hud glass">
-  <header>
-    <div class="mark">forage</div>
-    <div class="tag">The open market for AI tools</div>
-    <p class="lede">One balance pays for <i>every</i> AI tool. Each settlement pays three parties: the AI company, Forage, and the app that brought the buyer.</p>
-    <p class="sub">Interactive demo with simulated USDC. Press Next to step through, or Play to watch it run.</p>
-  </header>
-
-  <div class="caption">
-    <div class="eyebrow"><span class="num" id="capNum">I</span><span id="capEyebrow"></span></div>
-    <b id="capTitle"></b><p id="capBody"></p><p class="act" id="act" aria-live="polite"></p>
+  <div class="map" id="map" role="img" aria-label="A money tree in the middle, and a trail around it from Mia's agent and the Scout app, past the Forage vault, SearchCo and the signpost, to the tree's base, where one settlement drops three coins">
+    <canvas id="scene"></canvas>
+    <div id="labels"></div>
   </div>
-  <div class="controls"><button id="go"></button><button id="play">Play all</button></div>
+
+  <a class="brand" href="#" aria-label="Forage"><svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" aria-hidden="true"><path d="M50 94 V58 C50 40 60 28 76 16" stroke="#111" stroke-width="13"/><path d="M50 66 C46 50 36 40 22 34" stroke="#6D28D9" stroke-width="5"/><path d="M50 60 C48 44 46 30 40 14" stroke="#4B5563" stroke-width="5"/></svg>FORAGE</a>
+
+  <section class="story card" id="story" aria-live="polite">
+    <div class="eyebrow"><span class="chip" id="capNum">1</span><span id="capEyebrow"></span></div>
+    <h1 id="capTitle"></h1>
+    <div class="body" id="capBody"></div>
+    <p class="act" id="act"></p>
+    <p class="note" id="note"></p>
+    <div class="controls">
+      <button id="cta"></button>
+      <!-- TODO: point this at mailto:<contact address> before shipping. -->
+      <a class="btn" id="talk" href="#" hidden>Talk to us</a>
+      <button class="sm" id="prev">Prev</button>
+      <button class="sm" id="next">Next</button>
+      <button class="sm" id="watch">Watch the story</button>
+    </div>
   </section>
 
-  <div class="bar"><div class="steps" id="steps"></div></div>
+  <nav class="nav" id="nav" aria-label="Chapters"></nav>
 
-  <div class="stage">
-    <div class="map" id="map" role="img" aria-label="Money flow between Mia's agent, Scout, SearchCo, the Forage vault and Forage">
-      <canvas id="scene"></canvas>
-      <div id="labels"></div>
-    </div>
-    <p class="hint" id="hint">Do the step in purple, or press Play all. Drag empty space to rotate.</p>
-    <div class="card receipt glass">
-      <h3>Mia's latest signature</h3>
-      <p class="hint2">Not a payment. A promise SearchCo can cash in later.</p>
-      <div class="rows">
-        <div class="row"><span>Signed by</span><span>Mia's agent</span></div>
-        <div class="row"><span>Pay to</span><span>SearchCo</span></div>
-        <div class="row"><span>App cut</span><span>Scout, 5%</span></div>
-        <div class="row"><span>Signature</span><span id="sigNo">none yet</span></div>
-        <div class="row"><span>Running total</span><span class="big" id="total">$0.00</span></div>
-      </div>
-      <div class="stamp" id="stamp"></div>
-      <ul class="log" id="log"></ul>
-    </div>
-  </div>
-
-  <section class="split glass" id="split">
-    <div class="eyebrow"><span class="num">V</span><span>The split</span></div>
+  <section class="split card" id="split">
+    <div class="eyebrow"><span class="chip">5</span><span>The split of $0.0579</span></div>
     <div class="splitbar">
-      <div style="flex:91;background:rgba(11,85,99,.72)">SearchCo 91%</div>
-      <div style="flex:4;background:rgba(109,40,217,.7)"></div>
-      <div style="flex:5;background:rgba(75,85,99,.7)"></div>
+      <div style="flex:91;background:var(--supplier)">SearchCo 91%</div>
+      <div style="flex:4;background:var(--forage)"></div>
+      <div style="flex:5;background:var(--app)"></div>
     </div>
     <div class="legend">
-      <div style="color:var(--supplier)"><b id="lgS"></b>SearchCo keeps 91% for doing the work</div>
-      <div style="color:var(--forage)"><b id="lgF"></b>Forage takes a 4% fee</div>
-      <div style="color:var(--app)"><b id="lgA"></b>Scout earns 5% for bringing Mia</div>
+      <div style="color:var(--supplier)"><b id="lgS"></b>SearchCo keeps 91%</div>
+      <div style="color:var(--forage)"><b id="lgF"></b>Forage fee, 4%</div>
+      <div style="color:var(--app)"><b id="lgA"></b>Scout, 5% for bringing Mia</div>
+      <div style="color:var(--ink)"><b id="lgV"></b>Stays in Mia's vault</div>
     </div>
   </section>
 
-  <footer>Simulated. Amounts in USDC with 6 decimals, as on Base. Names are illustrative. The app's cut is part of what Mia signs, so nobody can swap it out later.</footer>
+  <footer>Simulated. Amounts in USDC with 6 decimals, as on Base. Names are illustrative. Per-call prices from treg.to's public catalog, Oct 2026. 3D models: <a href="assets/CREDITS.md" target="_blank" rel="noopener">credits</a>.</footer>
 </main>
 
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Money in micro-USDC (6 decimals), like the real token, so the split has no float dust.
-const PRICE = 10000;                 // $0.01 per search
 const FEE_BPS = 400, APP_BPS = 500;  // Forage 4%, Scout 5%, SearchCo keeps the rest
 const DEPOSIT = 1000000;             // $1.00
-const COIN = 50000;                  // one pearl in the vault stack is $0.05
+const COIN = 200000;                 // one coin in the vault's small row is $0.20
+const INK = 0x111111, PURPLE = 0x6D28D9, GREY = 0x4B5563, BG = 0xFFFEFB;
 
+// Mia's agent has picked Supplier B for a 10,000-unit order and now needs the right person there.
+// Task, result, price in micro-USDC. Prices are per-call prices from treg.to's public people-search catalog, Oct 2026.
 const SEARCHES = [
-  ["battery recycling startups 2026", "Redwood Materials, Li-Cycle, Ascend Elements, 14 more"],
-  ["lithium recovery rate by method", "Hydrometallurgy 95%+, pyrometallurgy 50-70%"],
-  ["EU battery passport deadline", "Required for EV batteries from Feb 2027"],
-  ["cost per kWh of recycled cathode", "Roughly 30% below newly mined material"],
-  ["top investors in battery recycling", "Breakthrough Energy, Goldman Sachs, Fifth Wall"],
+  ["Search for procurement leads at Supplier B", "6 people found", 10000],
+  ["Match the top lead to a work profile", "Head of Procurement, 9 years in role", 26000],
+  ["Find her work email", "1 address found", 8900],
+  ["Verify the email", "Deliverable, verified", 3000],
+  ["Enrich Supplier B's company profile", "1,200 staff, 3 plants, ISO 9001", 10000],
 ];
 
-// Back row: the call path, floating above the water. Front row: where the money goes.
-// tint is the pastel pearl colour; color is the brand colour used for trails and orbs. lab is the label anchor offset.
+// The money tree (the Forage mark) stands in the middle. The trail loops around it: Start and Fund on the left,
+// behind the tree, Call and Sign on the right, back to the tree's base where it forks into the three payee pads.
+// pos is where a party stands on the ground; h is its height, used for label and flight anchors (models overwrite it when they load).
 const NODES = {
-  mia:      { pos:[-2.9, 1.05, -1.3], color:0xC2410C, tint:0xF4B48E, css:"var(--buyer)",    name:"Mia's agent",  role:"Buyer", lab:[0, 0.85, 0],
+  mia:      { pos:[-7.2, 0, 0.6],  color:0xC2410C, css:"var(--buyer)",    name:"Mia's agent",  role:"Buyer", h:1.5,
               desc:"Holds one USDC balance in the vault. Signs a running total owed to SearchCo instead of paying per call." },
-  scout:    { pos:[0, 1.05, -1.3],    color:0x4B5563, tint:0xC3C8D4, css:"var(--app)",      name:"Scout",        role:"App Mia uses", lab:[0, 1.12, 0],
-              desc:"Routes each search. Its 5% is signed into the session, so it earns on every call Mia makes." },
-  searchco: { pos:[2.75, 1.05, -1.3],  color:0x0B5563, tint:0x9ADCE0, css:"var(--supplier)", name:"SearchCo",     role:"AI company, sells search", lab:[0, 0.95, 0],
-              desc:"Serves the search and keeps 91%. Cashes in Mia's latest signature whenever it likes." },
-  vault:    { pos:[0, 0, 1.5],        color:0x2a2238, tint:0x6B5A8E, css:"var(--ink)",      name:"Forage vault", role:"Mia's locked balance", lab:[0, 0, 1.2], below:true,
+  scout:    { pos:[-5.8, 0, -1.2], color:GREY,     css:"var(--app)",      name:"Scout app",    role:"The app Mia uses", h:1.2, lab:2.5,
+              desc:"Mia runs her agent inside Scout. Scout routes each call and earns 5% of every settlement for bringing her." },
+  vault:    { pos:[-3.7, 0, -0.5], color:INK,      css:"var(--ink)",      name:"Forage vault", role:"Mia's locked balance", h:1.5,
               desc:"One balance on Base that pays for any tool on Forage. Mia can withdraw what she does not spend." },
-  forage:   { pos:[2.35, 0.7, 2.0],   color:0x6D28D9, tint:0xC9B0F7, css:"var(--forage)",   name:"Forage",       role:"Protocol", lab:[0, 0.95, 0],
-              desc:"Takes a 4% fee on each settlement. Mints $FORAGE weekly on recognized usage." },
+  searchco: { pos:[3.6, 0, -1.3],  color:0x0B5563, css:"var(--supplier)", name:"SearchCo",     role:"AI company, sells search", h:2.0,
+              desc:"Serves the search and keeps 91%. Cashes in Mia's latest signature whenever it likes." },
+  forage:   { pos:[0, 0, 0.3],     color:PURPLE,   css:"var(--forage)",   name:"Forage",       role:"Protocol", h:3.9,
+              desc:"Takes a 4% fee on each settlement. Proposed: mints $FORAGE weekly on recognized usage." },
 };
-
-const STEPS = ["Fund", "Search 5 times", "Settle", "Done"];
-const ROMAN = ["I", "II", "III", "IV", "V"];
+const SIGN_AT = [5.0, 0, 0.9];   // station 4: the signpost
+const FORK = NODES.forage.pos;   // station 5: the tree's base, where the trail forks toward the viewer, like the mark
+const TREE_S = 4.0;              // height of the tree's 100-box; the fork on the ground is the same mark laid flat
+// Tools an agent needs today, each a dead end behind its own lock. Monthly plan prices are illustrative.
+const TOOLS = [["Search", 49, [-5.0, -3.4]], ["Email finder", 29, [-4.6, 3.2]], ["Maps", 20, [-2.2, -4.0]],
+               ["Voice", 39, [-2.8, 4.0]], ["Vision", 59, [1.8, -3.4]], ["Data", 25, [2.8, 3.2]]];
 
 function split(total) {
   const forage = total * FEE_BPS / 10000;
@@ -262,22 +245,60 @@ function split(total) {
   return { supplier, forage, app };
 }
 
-const usd = u => "$" + (u / 1e6).toFixed(u % 10000 ? 4 : 2);
+// Four decimals for anything under ten cents or not a whole cent, so a $0.0030 call never shows as $0.00.
+const usd = u => "$" + (u / 1e6).toFixed(u % 10000 || (u > 0 && u < 100000) ? 4 : 2);
 const $ = id => document.getElementById(id);
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+const BASE_PACE = 1.6, PLAY_PACE = 2.3; // every flight, camera move and pause is stretched by pace
+let pace = BASE_PACE; // BASE_PACE when the viewer drives, PLAY_PACE during Watch the story
+// Chase camera: while something flies, the camera closes in on it; after it lands the chapter shot returns.
+let chase = null, lastShot = null;
+let quick = false; // catching up state for a chapter the viewer jumped to: no flights, no waits
+const sleep = ms => new Promise(r => setTimeout(r, ms * pace));
+const hold = ms => new Promise(r => setTimeout(r, ms));
+const wait = ms => sleep(reduced || quick ? 0 : ms);
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const small = matchMedia("(max-width: 800px)").matches;
-const map = $("map"), labelsEl = $("labels"), canvas = $("scene");
-// Headline copy marks its italic word with *stars*.
+const map = $("map"), labelsEl = $("labels"), canvas = $("scene"), story = $("story");
+// Headline copy marks its purple word with *stars*.
 const em = t => t.replace(/\*(.+?)\*/g, "<i>$1</i>");
+const text = t => typeof t === "function" ? t() : t;
 
-// Labels: one glass pill per party (name, balance, a delta that fades in, hover text with the role).
+// The chapters. step is the station number on the trail. hold is how long Watch the story rests on one (real ms, not paced).
+const CH = [
+  { label:"Forage",  eye:"Forage",             title:"The *open* market for AI tools.",
+    body:"An agent buys any tool from one balance. Every settlement pays the AI company, Forage, and the app that brought the buyer. Five steps around the tree.", cta:"See how it works", hold:5000 },
+  { label:"Problem", eye:"The problem",        title:"Every tool is a *dead end*.",
+    body:"An agent that needs search, email and maps today needs three signups, three API keys and three monthly plans. The app that brought the user earns nothing.", hold:6500 },
+  { label:"Picture", eye:"The bigger picture", title:"One trail *settles* them all.",
+    body:"Many agents, many apps, many AI companies. Forage holds one balance per buyer and routes every call's payment through it.", hold:7000 },
+  { label:"Start",   eye:"Start", step:1,      title:"Mia's agent and the *Scout* app.",
+    body:"Mia's agent must source a supplier and needs five people searches. Scout is the app Mia uses: it routes her calls and earns 5% of each settlement for bringing her.", hold:5500 },
+  { label:"Fund",    eye:"Fund", step:2,       title:"Mia funds her agent *once*.",
+    body:"She puts $1.00 in the Forage vault. That one balance pays for any tool on Forage.", hold:1500 },
+  { label:"Call",    eye:"Call", step:3,       title:"Five calls, *priced* per call.",
+    body:"Each search travels from Mia's agent through Scout to SearchCo. Prices are per call, $0.0030 to $0.0260, from treg.to's catalog.", hold:800 },
+  { label:"Sign",    eye:"Sign", step:4,       title:"Sign, *don't* pay.",
+    body:() => `After each call Mia's agent signs a new running total owed to SearchCo, ${usd(s.total)} after five. Only the latest signature counts, and no money has moved.`, hold:5000 },
+  { label:"Settle",  eye:"Settle and split", step:5,
+    title:() => s.step === 3 ? "One settlement, *three* payees." : "One *lever*, one settlement.",
+    body:() => s.step === 3 ? "SearchCo keeps 91%, Forage takes 4%, Scout earns 5% for bringing Mia. The rest stays in Mia's vault."
+                            : "SearchCo cashes in the latest signature whenever it likes. The vault pays into the money tree, and each branch drops one coin: SearchCo, Forage, Scout.", hold:6500 },
+  { label:"$FORAGE", eye:"$FORAGE",            title:"Usage *earns* $FORAGE.",
+    body:"Each week a fixed amount of $FORAGE is minted and split by recognized usage: buyers, AI companies and the apps that bring them. Fake self-dealing calls earn nothing.", note:"Proposed", hold:8500 },
+  { label:"Why",     eye:"Why Forage",         title:"Why *Forage*.",
+    list:["AI companies keep <b>91%</b> of every call.", "Apps earn <b>5%</b> on every call they bring.", "<b>One</b> USDC balance on Base pays for any tool."], cta:"Replay", hold:0 },
+];
+// The walkthrough state a chapter needs before it can show: 1 funded, 2 all calls signed, 3 settled.
+const NEED = [0, 0, 0, 0, 0, 1, 2, 2, 3, 0];
+let ch = 0;
+
+// Labels: one card per party (name, balance, role, a delta that fades in, hover text).
 const nodeEls = {};
 for (const [k, n] of Object.entries(NODES)) {
   const el = document.createElement("div");
   el.className = "lbl"; el.style.setProperty("--c", n.css);
-  el.innerHTML = `<b></b><strong class="bal"></strong><em class="delta"></em><i class="desc"><small></small></i>`;
-  el.querySelector("b").textContent = n.name;
+  el.innerHTML = `<b></b><strong class="bal"></strong><span class="role"></span><em class="delta"></em><i class="desc"><small></small></i>`;
+  el.querySelector("b").textContent = n.name; el.querySelector(".role").textContent = n.role;
   el.querySelector(".desc small").textContent = n.role; el.querySelector(".desc").append(n.desc);
   labelsEl.appendChild(el);
   nodeEls[k] = { el, bal:el.querySelector(".bal"), delta:el.querySelector(".delta"), timer:0 };
@@ -288,272 +309,393 @@ let gl = null;
 try { gl = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:"high-performance" }); } catch (e) { map.classList.add("nogl"); }
 
 const V = a => new THREE.Vector3(...a);
-const _m = new THREE.Matrix4(), _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _s = new THREE.Vector3(1, 1, 1), _c = new THREE.Color(), _v = new THREE.Vector3();
+const _m = new THREE.Matrix4(), _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(1, 1, 1), _c = new THREE.Color(), _v = new THREE.Vector3();
 const UP = new THREE.Vector3(0, 1, 0), X = new THREE.Vector3(1, 0, 0), WHITE = new THREE.Color(0xffffff);
-let scene, camera, controls, nodes = {}, coins, ledger, lotus, W = 1, H = 1;
-let lever, leverArm, leverGrip, pulse, pickables = [], pulsed = null, uniforms = null;
-let leverT = 0, leverTo = 0, drag = null;
+let scene, camera, controls, nodes = {}, coins, ledger, W = 1, H = 1;
+let lever, leverArm, leverGrip, pulse, pickables = [], pulsed = null;
+let leverT = 0, leverTo = 0, drag = null, dragEnded = 0;
 const flights = [];
-const LOOK = new THREE.Vector3(0, 0.55, 0);
-let focus = LOOK.clone();
+let focus = new THREE.Vector3(0, 0.5, -0.4);
 const par = { x:0, y:0 };
-let VAULT_TOP = 0.6; const TUB = 48, COIN_S = new THREE.Vector3(0.65, 0.65, 0.65);
+let VAULT_TOP = 0.6; const TUB = 48, COIN_S = new THREE.Vector3(0.3, 0.3, 0.3);
+// Things set up inside the WebGL block that the story functions below also need.
+let boardTex = null, boardCtx = null, boardKey = '';
+let PKT_GEO, SIG_GEO, SEG = [], dots, markers = {}, padEls = [], PADS = {}, pads, stamp, stampWhite, padCoins = [];
+// The money tree: TREE holds each branch's curve in the air, LEAF the coin leaves (one record per instance), leaves and
+// leafStamps the instanced coins and the marks stamped on their faces.
+let TREE = {}, LEAF = [], leaves, leafStamps = [];
+const LEAF_S = new THREE.Vector3(0.55, 0.55, 0.55), ZERO = new THREE.Vector3(), _m2 = new THREE.Matrix4(), _q2 = new THREE.Quaternion();
+const TINT = { searchco:0xE9BE63, forage:0xC9A0DC, scout:0xC9CBD1 }; // gold on the heavy branch, purple-tinged gold for Forage, silver for Scout
+// Same tree on every load: a small seeded generator for leaf placement.
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+let problem, pdots, web, selfLoop, webMarks = [], problemPills = [], selfPill;
+const tracked = [];                          // { obj, el, dy }: an HTML pill that follows a 3D object
+const cam = { from:null, to:null, base:null, t0:0, t1:0, ms:0, amp:0, user:false };
+let phase = null, vaultPop = 0;              // phase: what the busy step is doing right now, for the trail's live segment
+const sig = { cur:null, el:null, fading:[], t0:0, a:0, b:0 };
+const BOARD = V([SIGN_AT[0], 1.62, SIGN_AT[2] + 0.1]); // where a signature card lands on the signpost
+// Camera shots: position, look-at, drift amplitude, and how much further back a phone stands. The camera looks along the trail from the front, a little above.
+const SHOT = {
+  hero:    [[-1.0, 4.9, 13.6], [-1.4, 1.0, 0.0], 0.25, 2.3],
+  problem: [[-2.2, 12.0, 6.5], [-2.2, 0, -0.4], 0.1, 1.6],
+  big:     [[-1.4, 16.0, 8.5], [-1.4, 0, -0.5], 0.1, 1.6],
+  start:   [[-6.0, 2.6, 6.2],  [-6.4, 0.9, -0.4], 0.05],
+  fund:    [[-4.7, 3.2, 6.8],  [-5.1, 0.8, -0.4], 0.05],
+  callL:   [[-2.2, 5.0, 12.6], [-2.8, 1.0, -0.6], 0.05],
+  callR:   [[-1.6, 5.0, 12.6], [-2.2, 1.0, -0.6], 0.05],
+  sign:    [[4.8, 2.9, 6.8],   [4.5, 1.0, 0.3], 0.05],
+  settle:  [[-2.4, 4.0, 9.4],  [-2.4, 0.9, 0.2], 0.05],
+  split:   [[0.2, 5.2, 11.0],  [0.0, 1.3, 1.0], 0.06, 1.6],
+  forage:  [[0.4, 5.6, 13.4],  [0.2, 1.4, -0.3], 0.08, 1.7],
+};
 
-// Pearl: iridescent, clearcoated, slightly metallic. Every solid thing in the scene uses it with a tint.
-const pearl = (tint, o = {}) => new THREE.MeshPhysicalMaterial({ color:tint, roughness:0.2, metalness:0.12, clearcoat:1, clearcoatRoughness:0.12,
-  iridescence:1, iridescenceIOR:1.35, iridescenceThicknessRange:[120, 540], sheen:0.5, sheenColor:0xffffff, sheenRoughness:0.6, envMapIntensity:1.1, ...o });
-const chrome = () => pearl(0xF6F1FF, { metalness:0.9, roughness:0.08, iridescence:0.6 });
+// Matte, calm materials. Models keep their own.
+const matte = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness:0.55, metalness:0.05, ...o });
 
-// Sky and sea share one GLSL sky function: lilac above, peach at the horizon, a warm sun low on the right, fbm clouds.
-const SKY_GLSL = `
-  uniform float t;
-  const vec3 SUN = normalize(vec3(0.62, 0.2, -0.76));
-  float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-  float noise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
-    return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y); }
-  float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < OCT; i++) { v += a * noise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; } return v; }
-  vec3 sky(vec3 d) {
-    float h = clamp(d.y, -1.0, 1.0);
-    vec3 top = vec3(0.68, 0.60, 0.90), mid = vec3(0.90, 0.80, 0.93), hor = vec3(0.99, 0.87, 0.80);
-    vec3 c = mix(hor, mid, smoothstep(0.0, 0.22, h));
-    c = mix(c, top, smoothstep(0.22, 0.85, h));
-    c = mix(c, vec3(0.93, 0.82, 0.86), smoothstep(0.0, -0.3, h));
-    float s = max(dot(d, SUN), 0.0);
-    c += vec3(1.0, 0.80, 0.62) * (pow(s, 5.0) * 0.32 + pow(s, 48.0) * 0.55);
-    if (h > 0.0) {
-      vec2 uv = d.xz / (h + 0.18) * 1.1 + vec2(t * 0.012, t * 0.004);
-      float n = fbm(uv * 1.4);
-      float cl = smoothstep(0.42, 0.74, n);
-      float fade = smoothstep(0.0, 0.1, h) * (1.0 - smoothstep(0.45, 0.95, h));
-      c = mix(c, vec3(1.0, 0.975, 0.985), cl * fade * 0.8);
-    }
-    return c;
-  }`;
+// The forked-root mark as curves in its own 100 x 100 box (y up): the SVG in brand/mark.svg.
+// Each stroke: curves, stroke width, colour. The heavy stem and branch are the 91%, the fine ones are 4% and 5%.
+const MARK = [
+  { w:13, color:INK,    curves:[[[50, 94], [50, 58]], [[50, 58], [50, 40], [60, 28], [76, 16]]] },
+  { w:5,  color:PURPLE, curves:[[[50, 66], [46, 50], [36, 40], [22, 34]]] },
+  { w:5,  color:GREY,   curves:[[[50, 60], [48, 44], [46, 30], [40, 14]]] },
+];
+// Map a mark point into 3D: standing (x right, y up) or flat on the ground (x right stays +x, y up becomes +z, toward the viewer).
+const markPath = (stroke, S, at, flat) => {
+  const to = ([mx, my]) => flat ? V([at[0] + (mx - 50) / 100 * S, at[1], at[2] + (94 - my) / 100 * S]) : V([at[0] + (mx - 50) / 100 * S, at[1] + (94 - my) / 100 * S, at[2]]);
+  const path = new THREE.CurvePath();
+  for (const c of stroke.curves) path.add(c.length === 2 ? new THREE.LineCurve3(to(c[0]), to(c[1])) : new THREE.CubicBezierCurve3(...c.map(to)));
+  return path;
+};
+// A solid mark: each stroke a rounded tube with ball ends, like the SVG's round caps. S is the height of the 100-box.
+function markMesh(S, at = [0, 0, 0], mats = null) {
+  const g = new THREE.Group();
+  MARK.forEach((st, i) => {
+    const path = markPath(st, S, at, false), r = st.w / 200 * S, mat = mats ? mats[i] : matte(st.color, { roughness:0.4 });
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(path, 48, r, 14, false), mat);
+    const cap = new THREE.SphereGeometry(r, 14, 10);
+    const a = new THREE.Mesh(cap, mat), b = new THREE.Mesh(cap, mat); a.position.copy(path.getPoint(0)); b.position.copy(path.getPoint(1));
+    g.add(tube, a, b);
+  });
+  g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  return g;
+}
 
 if (gl) {
   gl.setPixelRatio(Math.min(devicePixelRatio, small ? 1.5 : 2));
-  gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.0;
+  gl.toneMapping = THREE.NoToneMapping; // so fog, ground and the page background all meet at the same off-white
   gl.outputColorSpace = THREE.SRGBColorSpace;
+  gl.shadowMap.enabled = true; gl.shadowMap.type = THREE.PCFSoftShadowMap;
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(40, 1.8, 0.1, 1000);
-  camera.position.set(0, 4.6, 9.6);
-  uniforms = { t:{ value:0 }, camPos:{ value:camera.position } };
-  const defines = { OCT: small ? 3 : 5 };
+  scene.background = new THREE.Color(BG);
+  scene.fog = new THREE.Fog(BG, 24, 70);
+  camera = new THREE.PerspectiveCamera(40, 1.8, 0.1, 3000); // far enough to see the ground reach the horizon
+  camera.position.set(0.2, 6.5, 19);
 
-  // Sky dome. Rendered once into a PMREM so every pearl reflects the same pastel sky.
-  const skyMat = new THREE.ShaderMaterial({ uniforms, defines, side:THREE.BackSide, depthWrite:false,
-    vertexShader:`varying vec3 vW; void main() { vW = (modelMatrix * vec4(position, 1.0)).xyz; gl_Position = projectionMatrix * viewMatrix * vec4(vW, 1.0); }`,
-    fragmentShader:`varying vec3 vW; ${SKY_GLSL} void main() { gl_FragColor = vec4(sky(normalize(vW)), 1.0); }` });
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(400, 48, 24), skyMat);
-  scene.add(dome);
-  const pmrem = new THREE.PMREMGenerator(gl);
-  const envScene = new THREE.Scene(); envScene.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), skyMat));
-  scene.environment = pmrem.fromScene(envScene, 0.02).texture; pmrem.dispose();
-
-  // Sea: a plane that reflects the sky function through rippled normals, fading into the horizon with distance.
-  const seaMat = new THREE.ShaderMaterial({ uniforms, defines,
-    vertexShader:`varying vec3 vW; void main() { vW = (modelMatrix * vec4(position, 1.0)).xyz; gl_Position = projectionMatrix * viewMatrix * vec4(vW, 1.0); }`,
-    fragmentShader:`varying vec3 vW; uniform vec3 camPos; uniform sampler2D skyTex; ${SKY_GLSL}
-      #ifdef HDR
-      // Equirectangular lookup into the sky photo (linear HDR), same orientation as scene.background.
-      vec3 photo(vec3 d) { vec2 uv = vec2(atan(d.z, d.x) * 0.15915494 + 0.5, asin(clamp(d.y, -1.0, 1.0)) * 0.31830989 + 0.5); return texture2D(skyTex, uv).rgb; }
-      #define SKY(d) photo(d)
-      #else
-      #define SKY(d) sky(d)
-      #endif
-      void main() {
-        vec3 p = vW;
-        float dist = length(p.xz - camPos.xz);
-        float amp = 0.2 / (1.0 + dist * 0.08);
-        float a1 = p.x * 1.4 + t * 0.9, a2 = p.z * 2.1 - t * 0.7, a3 = (p.x + p.z) * 0.8 + t * 0.5;
-        float dx = cos(a1) * 1.4 * 0.5 + cos(a3) * 0.8 * 0.25;
-        float dz = cos(a2) * 2.1 * 0.3 + cos(a3) * 0.8 * 0.25;
-        vec3 n = normalize(vec3(-dx * amp, 1.0, -dz * amp));
-        vec3 v = normalize(p - camPos);
-        vec3 r = reflect(v, n); r.y = abs(r.y) + 0.02;
-        vec3 refl = SKY(r);
-        #ifdef HDR
-        vec3 milk = vec3(0.50, 0.46, 0.76);
-        #else
-        vec3 milk = vec3(0.74, 0.72, 0.91);
-        #endif
-        float fres = pow(1.0 - max(dot(-v, n), 0.0), 2.0);
-        vec3 c = mix(milk, refl, 0.35 + 0.6 * fres);
-        c += vec3(1.0, 0.92, 0.84) * pow(max(dot(r, SUN), 0.0), 60.0) * 0.7;
-        vec2 hd = normalize(p.xz - camPos.xz);
-        c = mix(c, SKY(vec3(hd.x, 0.01, hd.y)), smoothstep(18.0, 90.0, dist));
-        gl_FragColor = vec4(c, 1.0);
-        #ifdef HDR
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-        #endif
-      }` });
-  seaMat.uniforms.skyTex = { value:null };
-  const sea = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), seaMat);
-  sea.rotation.x = -Math.PI / 2; scene.add(sea);
-
+  // Daylight: a soft sky, one sun that casts a soft shadow, and a neutral room for reflections.
+  scene.add(new THREE.HemisphereLight(0xFFFFFF, 0xE8E3D8, 0.5));
+  const sun = new THREE.DirectionalLight(0xFFFBF2, 0.6); sun.position.set(5, 11, 7); sun.castShadow = true;
+  Object.assign(sun.shadow.camera, { left:-13, right:13, top:9, bottom:-9, near:1, far:40 });
+  sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02; sun.shadow.intensity = 0.55;
+  scene.add(sun, sun.target);
+  const fill = new THREE.DirectionalLight(0xFFFFFF, 0.12); fill.position.set(-6, 4, 5); scene.add(fill);
+  // Start with a neutral studio room for reflections; the sky photo replaces it once loaded.
+  { const pm = new THREE.PMREMGenerator(gl); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose(); scene.environmentIntensity = 0.35; }
+  // Real sunset sky (Poly Haven, CC0): the backdrop above the horizon and the reflections on the models.
+  // The neutral room light above stays as the fallback until it loads; fog takes the sky's pale horizon tone.
   new RGBELoader().load("assets/sky.hdr", tex => {
     tex.mapping = THREE.EquirectangularReflectionMapping;
-    scene.background = tex; scene.backgroundIntensity = 1.05;
-    const pm = new THREE.PMREMGenerator(gl); scene.environment = pm.fromEquirectangular(tex).texture; pm.dispose();
-    seaMat.uniforms.skyTex.value = tex; seaMat.defines.HDR = 1; seaMat.needsUpdate = true;
-    scene.remove(dome);
+    scene.background = tex; scene.backgroundIntensity = 1;
+    const pm2 = new THREE.PMREMGenerator(gl); scene.environment = pm2.fromEquirectangular(tex).texture; pm2.dispose();
+    scene.environmentIntensity = 0.55;
+    // Ground runs to the horizon and fogs into the sky's horizon tone, so there is no seam.
+    scene.fog.color.set(0xDCD6E0); scene.fog.near = 30; scene.fog.far = 260;
+    // Horizon haze: a huge open cylinder, fog-coloured at the ground and clear 12 degrees up, hides the photo's hard horizon.
+    const haze = new THREE.Mesh(new THREE.CylinderGeometry(1500, 1500, 640, 64, 1, true), new THREE.ShaderMaterial({
+      side:THREE.BackSide, transparent:true, depthWrite:false, fog:false, uniforms:{ c:{ value:scene.fog.color } },
+      vertexShader:`varying float vY; void main() { vY = position.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader:`uniform vec3 c; varying float vY; void main() { gl_FragColor = vec4(c, 1.0 - smoothstep(-20.0, 320.0, vY));
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }` })); // same tone mapping and sRGB output as the fogged ground, so the two match
+    haze.position.y = 0; haze.renderOrder = -1; scene.add(haze);
   });
-  scene.add(new THREE.HemisphereLight(0xEADCFF, 0xF8DCCB, 0.7));
-  const sun = new THREE.DirectionalLight(0xFFDCC2, 1.5); sun.position.set(6, 5, -5); scene.add(sun);
-  const fill = new THREE.DirectionalLight(0xD9CCFF, 0.5); fill.position.set(-5, 3, 6); scene.add(fill);
 
-  // Glitter: points drifting in the air, twinkling. Positions and size live in the shader; no per-frame buffer writes.
-  const N = small ? 160 : 420, pos = new Float32Array(N * 3), seed = new Float32Array(N);
-  for (let i = 0; i < N; i++) { pos[i * 3] = (Math.random() - 0.5) * 26; pos[i * 3 + 1] = 0.2 + Math.random() * 7; pos[i * 3 + 2] = -12 + Math.random() * 20; seed[i] = Math.random(); }
-  const gg = new THREE.BufferGeometry(); gg.setAttribute("position", new THREE.BufferAttribute(pos, 3)); gg.setAttribute("seed", new THREE.BufferAttribute(seed, 1));
-  const glitter = new THREE.Points(gg, new THREE.ShaderMaterial({ uniforms:{ t:uniforms.t, dpr:{ value:gl.getPixelRatio() } }, transparent:true, depthWrite:false,
-    vertexShader:`attribute float seed; uniform float t, dpr; varying float vA;
-      void main() { vec3 p = position + vec3(sin(t * 0.25 + seed * 6.3) * 0.4, sin(t * 0.4 + seed * 12.6) * 0.3, 0.0);
-        vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv;
-        gl_PointSize = (1.5 + 3.5 * fract(seed * 7.1)) * dpr * (22.0 / -mv.z);
-        vA = 0.35 + 0.65 * pow(0.5 + 0.5 * sin(t * 2.2 + seed * 40.0), 3.0); }`,
-    fragmentShader:`varying float vA; void main() { float d = length(gl_PointCoord - 0.5); gl_FragColor = vec4(1.0, 0.99, 1.0, smoothstep(0.5, 0.08, d) * vA); }` }));
-  scene.add(glitter);
+  // Ground: a light plane that takes the shadows and fades into the page.
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), matte(0xF4F2EC, { roughness:0.95, metalness:0 }));
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; ground.material.envMapIntensity = 0.1; scene.add(ground); // barely reflects, so the sunset never tints it
 
-  // Lotus: six petals and a heart, merged into one geometry, instanced around the market and rocked by the water.
-  const petal = new THREE.SphereGeometry(0.14, 12, 8); petal.scale(1, 0.35, 1.7);
-  const parts = [];
-  for (let i = 0; i < 6; i++) { const g = petal.clone(); g.translate(0, 0, 0.12); g.rotateX(-0.35); g.rotateY(i * Math.PI / 3); parts.push(g); }
-  const heart = new THREE.SphereGeometry(0.08, 12, 8); heart.scale(1, 0.6, 1); heart.translate(0, 0.04, 0); parts.push(heart);
-  lotus = new THREE.InstancedMesh(mergeGeometries(parts), pearl(0xFFF6F2, { roughness:0.35, metalness:0, iridescence:0.4, sheenColor:0xFFC9D6 }), 14);
-  lotus.userData.at = [];
-  for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2, r = 5.5 + (i % 3) * 1.6; lotus.userData.at.push([Math.cos(a) * r * 1.3, Math.sin(a) * r * 0.7 - 2.5, Math.random() * 6.3]); }
-  scene.add(lotus);
-
-  // A soft white glow behind each party: one radial gradient drawn on a canvas, shared by every sprite.
-  const hc = document.createElement("canvas"); hc.width = hc.height = 128;
-  const hx = hc.getContext("2d"), hg = hx.createRadialGradient(64, 64, 0, 64, 64, 64);
-  hg.addColorStop(0, "rgba(255,255,255,0.9)"); hg.addColorStop(0.35, "rgba(255,255,255,0.35)"); hg.addColorStop(1, "rgba(255,255,255,0)");
-  hx.fillStyle = hg; hx.fillRect(0, 0, 128, 128);
-  const haloMat = new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(hc), transparent:true, depthWrite:false, opacity:0.55, toneMapped:false });
-  // Contact shadow: a radial gradient disc on the water, darkest in the middle.
-  const sc = document.createElement("canvas"); sc.width = sc.height = 128;
-  const sx = sc.getContext("2d"), sg = sx.createRadialGradient(64, 64, 0, 64, 64, 64);
-  sg.addColorStop(0, "rgba(40,30,70,0.45)"); sg.addColorStop(1, "rgba(40,30,70,0)"); sx.fillStyle = sg; sx.fillRect(0, 0, 128, 128);
-  const shadowMat = new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(sc), transparent:true, depthWrite:false, toneMapped:false });
-  const halo = size => { const sp = new THREE.Sprite(haloMat); sp.scale.setScalar(size); return sp; };
-
-  // A party: a group with one body mesh (the one that glows) plus trim and a halo, all meshes pickable under one key.
+  // A party: a group with one body mesh plus trim, all meshes pickable under one key.
   const party = (key, body, ...trim) => {
     const g = new THREE.Group(); g.position.copy(V(NODES[key].pos)); g.userData.key = key; g.userData.body = body;
-    g.add(body, ...trim, halo(key === "vault" ? 4.5 : 2.6));
-    const sh = new THREE.Mesh(new THREE.CircleGeometry(key === "vault" ? 1.3 : 0.7, 40), shadowMat);
-    sh.rotation.x = -Math.PI / 2; sh.position.set(NODES[key].pos[0], 0.025, NODES[key].pos[2]); sh.renderOrder = 1; scene.add(sh);
-    g.traverse(o => { if (o.isMesh) { o.userData.key = key; pickables.push(o); } });
+    g.add(body, ...trim);
+    g.traverse(o => { if (o.isMesh) { o.userData.key = key; o.castShadow = true; o.receiveShadow = true; pickables.push(o); } });
     scene.add(g); nodes[key] = g; return g;
   };
-  const star = (points, outer, inner, depth, bevel) => {
-    const sh = new THREE.Shape();
-    for (let i = 0; i < points * 2; i++) { const r = i % 2 ? inner : outer, a = i / points * Math.PI - Math.PI / 2; sh[i ? "lineTo" : "moveTo"](Math.cos(a) * r, Math.sin(a) * r); }
-    sh.closePath();
-    const g = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled:true, bevelThickness:bevel, bevelSize:bevel * 0.9, bevelSegments:7, curveSegments:4 });
-    g.center(); return g;
-  };
-  // Mia: a soft five point spark. Scout: a halo. SearchCo: a faceted crystal. Vault: a pearl chest. Forage: an inflated four point star.
-  party("mia", new THREE.Mesh(star(5, 0.48, 0.25, 0.14, 0.12), pearl(NODES.mia.tint))).rotation.set(-0.2, 0.5, 0.1);
-  party("scout", new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.17, 32, 96), pearl(NODES.scout.tint))).rotation.set(0.9, 0.2, 0);
-  const crystal = mergeGeometries([new THREE.CylinderGeometry(0.42, 0.42, 0.5, 6), new THREE.CylinderGeometry(0, 0.42, 0.55, 6).translate(0, 0.525, 0), new THREE.CylinderGeometry(0.42, 0, 0.55, 6).translate(0, -0.525, 0)]);
-  party("searchco", new THREE.Mesh(crystal, pearl(NODES.searchco.tint, { flatShading:true, roughness:0.1 }))).rotation.set(0.15, 0.4, -0.2);
-  party("forage", new THREE.Mesh(star(4, 0.5, 0.17, 0.18, 0.16), pearl(NODES.forage.tint))).rotation.set(0, -0.5, 0.1);
-  const chest = new THREE.Mesh(new RoundedBoxGeometry(1.9, VAULT_TOP, 1.5, 5, 0.22), pearl(NODES.vault.tint, { roughness:0.25 })); chest.position.y = VAULT_TOP / 2 - 0.06;
-  const clasp = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.035, 16, 40), chrome()); clasp.position.set(0, VAULT_TOP * 0.45 - 0.06, 0.76);
-  party("vault", chest, clasp);
+  // Placeholders until the models load: simple blocks in lane colours, seated on the ground.
+  const block = (w, h, d, color) => { const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, 0.06), matte(color)); m.position.y = h / 2; return m; };
+  party("mia", block(0.8, 1.5, 0.6, NODES.mia.color));
+  party("scout", block(0.55, 1.2, 0.08, NODES.scout.color));
+  party("searchco", block(0.9, 2.0, 0.9, NODES.searchco.color));
+  party("vault", block(1.4, 1.5, 1.2, 0x2A2A2A));
+  // Forage: the money tree. Its trunk is the forked-root mark, standing in the middle of the trail; the coin leaves come after the coin geometry below.
+  party("forage", markMesh(TREE_S));
+  for (const [k, i] of Object.entries({ searchco:0, forage:1, scout:2 })) TREE[k] = markPath(MARK[i], TREE_S, NODES.forage.pos, false);
 
-  // Each model is scaled so its largest side is `size`, centred on the party (or seated on the water for the vault),
-  // turned to face the camera, then swapped in for the pearl placeholder, including picking and the pulse glow.
+  // Each model is scaled so its largest side is `size`, seated on the ground, turned to face the camera,
+  // then swapped in for the placeholder, including picking and the pulse glow.
   const MODELS = {
-    mia:      { file:"classic_laptop/classic_laptop_1k.gltf", size:1.6, yaw:0 },
-    scout:    { file:"Lantern_01/Lantern_01_1k.gltf",         size:1.45, yaw:0 },
-    searchco: { file:"power_box_01/power_box_01_1k.gltf",     size:1.6,  yaw:-0.35 },
-    forage:   { file:"CashRegister_01/CashRegister_01_1k.gltf", size:1.35, yaw:-0.6 },
-    vault:    { file:"treasure_chest/treasure_chest_1k.gltf", size:1.7,  yaw:0, seat:true },
+    mia:      { file:"robot/robot.glb",   size:1.7,  yaw:0.25, drop:/Suelo/ },  // the model ships with a floor disc
+    scout:    { file:"phone/phone.glb",   size:1.4, yaw:Math.PI - 0.35, tilt:-0.12, drop:/Logo/ }, // screen toward the viewer, no brand mark
+    searchco: { file:"server/server.glb", size:2.3,  yaw:-0.35 },
+    vault:    { file:"safe/safe.glb",     size:1.7,  yaw:0, vault:true },
   };
   const loader = new GLTFLoader();
   for (const [key, m] of Object.entries(MODELS)) loader.load("assets/" + m.file, gltf => {
     const model = gltf.scene, g = nodes[key];
-    model.rotation.y = m.yaw;
+    if (m.drop) { const gone = []; model.traverse(o => { if (o.isMesh && m.drop.test(o.name)) gone.push(o); }); gone.forEach(o => o.removeFromParent()); }
+    model.rotation.y = m.yaw; if (m.tilt) model.rotation.x = m.tilt;
     const box = new THREE.Box3().setFromObject(model), size = box.getSize(new THREE.Vector3());
     model.scale.setScalar(m.size / Math.max(size.x, size.y, size.z));
-    box.setFromObject(model); const c = box.getCenter(new THREE.Vector3());
-    model.position.set(-c.x, m.seat ? -box.min.y : -c.y, -c.z);
-    if (m.seat) { VAULT_TOP = box.max.y - box.min.y; render3d(); }
-    model.traverse(o => { if (o.isMesh) { o.userData.key = key; o.material = o.material.clone(); o.material.envMapIntensity = 1.2; pickables.push(o); } });
-    for (const o of [...g.children]) if (o.isMesh) g.remove(o); // placeholder body and trim; the halo sprite stays
+    box.setFromObject(model); const c = box.getCenter(new THREE.Vector3()), d = box.getSize(new THREE.Vector3());
+    model.position.set(-c.x, -box.min.y, -c.z);
+    NODES[key].h = d.y;
+    if (m.vault) { VAULT_TOP = d.y; render3d(); }
+    model.traverse(o => { if (o.isMesh) { o.userData.key = key; o.material = o.material.clone(); o.material.envMapIntensity = 0.7; o.castShadow = true; o.receiveShadow = true; pickables.push(o); } });
+    for (const o of [...g.children]) if (o.isMesh) g.remove(o); // the placeholder block
     pickables = pickables.filter(o => o.userData.key !== key || model.getObjectById(o.id));
-    g.rotation.set(0, 0, 0); g.userData.yaw = 0; g.add(model); g.userData.body = model;
+    g.add(model); g.userData.body = model;
+    // The Forage mark on the safe door.
+    if (m.vault) { const decal = markMesh(0.42, [0, d.y * 0.52, d.z / 2 + 0.02]); g.add(decal); }
   }, undefined, () => {});
 
-  // The vault holds Mia's balance as a stack of $0.05 pearls. Settlement takes pearls off the top.
+  // The vault holds Mia's balance as a short row of five small $0.20 coins on top of the safe. Settlement takes one away.
+  // The same geometry, scaled up, is the coin that flies: the moving money is the big thing, the stack is the small thing.
   const coinGeo = new THREE.SphereGeometry(0.3, 32, 16); coinGeo.scale(1, 0.2, 1);
-  coins = new THREE.InstancedMesh(coinGeo, pearl(0xFFD9C2, { roughness:0.12 }), 24);
-  coins.count = 0; scene.add(coins);
+  coins = new THREE.InstancedMesh(coinGeo, matte(0xE2B45A, { roughness:0.35, metalness:0.6 }), 12);
+  coins.count = 0; coins.castShadow = true; scene.add(coins);
+  // Real coin (Sketchfab, CC-BY): lay it flat, size it like the disc it replaces, tint it gold, swap it into the stack.
+  new GLTFLoader().load("assets/coins/coins.glb", gltf => {
+    let src = null; gltf.scene.updateMatrixWorld(true); gltf.scene.traverse(o => { if (o.isMesh && !src) src = o; });
+    if (!src) return;
+    const geo = src.geometry.clone().applyMatrix4(src.matrixWorld); geo.computeBoundingBox();
+    const sz = geo.boundingBox.getSize(new THREE.Vector3());
+    if (sz.x < sz.y && sz.x < sz.z) geo.rotateZ(Math.PI / 2); else if (sz.z < sz.y && sz.z < sz.x) geo.rotateX(Math.PI / 2);
+    geo.computeBoundingBox(); geo.center(); const s2 = geo.boundingBox.getSize(new THREE.Vector3());
+    geo.scale(0.6 / Math.max(s2.x, s2.z), 0.1 / s2.y, 0.6 / Math.max(s2.x, s2.z));
+    const m = src.material.clone(); m.color = new THREE.Color(0xE9BE63); m.envMapIntensity = 0.8;
+    coins.geometry.dispose(); coins.geometry = geo; coins.material = m;
+  });
+  // The Forage mark stamped on both faces of every moving coin: a flat mark in brand colours, and a white one for $FORAGE tokens.
+  stamp = markMesh(0.26, [0, 0, 0]); stamp.rotation.x = -Math.PI / 2; stamp.position.set(0, 0.06, 0.1);
+  const white = matte(0xffffff, { roughness:0.4 });
+  stampWhite = markMesh(0.26, [0, 0, 0], [white, white, white]); stampWhite.rotation.x = -Math.PI / 2; stampWhite.position.set(0, 0.06, 0.1);
 
-  // The ledger: one glassy card per signature, stacked at the front-left, Mia's side. Only the latest is plum; replaced ones go pale.
-  ledger = new THREE.InstancedMesh(new RoundedBoxGeometry(0.95, 0.045, 0.62, 2, 0.02), pearl(0xffffff, { roughness:0.08, iridescence:0.7, transparent:true, opacity:0.88 }), SEARCHES.length);
-  ledger.count = 0; ledger.position.set(-2.5, 0.02, 1.7); scene.add(ledger);
+  // The tree's leaves: clusters of coins hanging along the upper part of each branch (LEAF_C is where along the branch each
+  // cluster sits, LEAF_N how many coins it holds), tinted per branch. Each branch's leaves are kept in tip order, so thinning takes the tip first.
+  const LEAF_C = { searchco:[0.6, 0.74, 0.88, 1.0], forage:[0.66, 1.0], scout:[0.64, 1.0] }, LEAF_N = { searchco:12, forage:8, scout:9 }, LEAF_R = { searchco:0.36, forage:0.3, scout:0.3 };
+  for (const k of Object.keys(TREE)) {
+    const ts = LEAF_C[k].flatMap(c => Array.from({ length:LEAF_N[k] }, () => c + (rnd() - 0.5) * 0.08)).sort((a, b) => a - b);
+    for (const t of ts) {
+      const pos = TREE[k].getPoint(Math.min(1, t)), a = rnd() * 6.283, b = rnd() * 6.283, d = LEAF_R[k] * Math.cbrt(rnd());
+      pos.x += d * Math.cos(a) * Math.sin(b); pos.y += d * Math.cos(b) - 0.08; pos.z += d * Math.sin(a) * Math.sin(b);
+      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2 + (rnd() - 0.5) * 0.5, rnd() * 6.283, (rnd() - 0.5) * 0.4));
+      LEAF.push({ k, pos, q, ph:rnd() * 6.283, on:true });
+    }
+  }
+  // A leaf is one clean disc (the glb coin is a small pile of six, which reads as barrels at this size), white so the instance colour tints it.
+  leaves = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.3, 0.3, 0.1, 40), matte(0xffffff, { roughness:0.3, metalness:0.65 }), LEAF.length);
+  LEAF.forEach((l, i) => leaves.setColorAt(i, _c.setHex(TINT[l.k]))); leaves.castShadow = true; scene.add(leaves);
+  // Both faces of every leaf carry the mark: one instanced mesh per stroke, two instances per leaf.
+  const FACE = [_m.compose(_p.set(0, 0.06, 0.1), _q.setFromAxisAngle(X, -Math.PI / 2), _s).clone(), _m.compose(_p.set(0, -0.06, -0.1), _q.setFromAxisAngle(X, Math.PI / 2), _s).clone()];
+  _q.identity();
+  leafStamps = MARK.map(st => {
+    const path = markPath(st, 0.26, [0, 0, 0], false), r = st.w / 200 * 0.26;
+    const geo = mergeGeometries([new THREE.TubeGeometry(path, 24, r, 10, false), new THREE.SphereGeometry(r, 10, 8).translate(...path.getPoint(0)), new THREE.SphereGeometry(r, 10, 8).translate(...path.getPoint(1))]);
+    const m = new THREE.InstancedMesh(geo, matte(st.color, { roughness:0.4 }), LEAF.length * 2); scene.add(m); return m;
+  });
+  // The leaves sway a little and catch the light as they turn. A thinned leaf is scaled to nothing.
+  leaves.userData.tick = () => {
+    LEAF.forEach((l, i) => {
+      _q2.setFromAxisAngle(X, reduced ? 0 : Math.sin(time * 1.3 + l.ph) * 0.09).multiply(l.q);
+      leaves.setMatrixAt(i, _m.compose(l.pos, _q2, l.on ? LEAF_S : ZERO));
+      FACE.forEach((F, j) => { _m2.multiplyMatrices(_m, F); for (const st of leafStamps) st.setMatrixAt(j * LEAF.length + i, _m2); });
+    });
+    leaves.instanceMatrix.needsUpdate = true; for (const st of leafStamps) st.instanceMatrix.needsUpdate = true;
+  };
+
+  // Station 4, the signpost: a post with a board. Signatures land on the board; the replaced ones stack at its foot.
+  const post = new THREE.Group(); post.position.set(...SIGN_AT);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 1.5, 16), matte(INK)); pole.position.y = 0.75;
+  const bc = document.createElement("canvas"); bc.width = 512; bc.height = 328; boardCtx = bc.getContext("2d");
+  boardTex = new THREE.CanvasTexture(bc); boardTex.colorSpace = THREE.SRGBColorSpace; boardTex.anisotropy = 4;
+  const board = new THREE.Mesh(new RoundedBoxGeometry(1.0, 0.64, 0.05, 2, 0.02), [0, 0, 0, 0, 0, 0].map((_, i) => i === 4 ? matte(0xffffff, { roughness:0.5, map:boardTex }) : matte(0xffffff, { roughness:0.5 }))); board.position.set(0, 1.62, 0.02);
+  const rim = new THREE.Mesh(new RoundedBoxGeometry(1.06, 0.7, 0.03, 2, 0.02), matte(INK)); rim.position.set(0, 1.62, -0.01);
+  post.add(pole, board, rim); post.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } }); scene.add(post);
+  ledger = new THREE.InstancedMesh(new RoundedBoxGeometry(0.7, 0.04, 0.46, 2, 0.015), matte(0xffffff, { roughness:0.5 }), SEARCHES.length);
+  ledger.count = 0; ledger.position.set(SIGN_AT[0] + 0.1, 0.02, SIGN_AT[2] + 0.75); ledger.castShadow = true; scene.add(ledger);
   for (let i = 0; i < SEARCHES.length; i++) ledger.setColorAt(i, _c.setHex(0xffffff)); // create the colour buffer before the first compile
 
   // Settlement lever on the vault's left side. Pulling it toward you settles; the arm leans back at rest.
-  lever = new THREE.Group(); lever.position.set(NODES.vault.pos[0] - 1.3, 0, NODES.vault.pos[2] + 0.25);
-  const base = new THREE.Mesh(new RoundedBoxGeometry(0.6, 0.5, 0.5, 4, 0.14), pearl(NODES.vault.tint, { roughness:0.25 })); base.position.y = 0.19;
-  const boss = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.06, 32), chrome()); boss.position.y = 0.46;
-  leverArm = new THREE.Group(); leverArm.position.y = 0.46; leverArm.rotation.x = -0.4;
-  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.9, 24), chrome()); arm.position.y = 0.45;
-  leverGrip = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.24, 8, 24), pearl(NODES.forage.tint)); leverGrip.position.y = 0.94; leverGrip.rotation.z = Math.PI / 2;
+  lever = new THREE.Group(); lever.position.set(NODES.vault.pos[0] - 1.2, 0, NODES.vault.pos[2] + 0.5);
+  const base = new THREE.Mesh(new RoundedBoxGeometry(0.5, 0.42, 0.42, 4, 0.1), matte(0x2A2A2A)); base.position.y = 0.21;
+  const boss = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.05, 32), matte(0x9A9A9A, { metalness:0.6, roughness:0.3 })); boss.position.y = 0.44;
+  leverArm = new THREE.Group(); leverArm.position.y = 0.44; leverArm.rotation.x = -0.4;
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.85, 24), matte(0x9A9A9A, { metalness:0.6, roughness:0.3 })); arm.position.y = 0.42;
+  leverGrip = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.22, 8, 24), matte(PURPLE)); leverGrip.position.y = 0.88; leverGrip.rotation.z = Math.PI / 2;
   leverArm.add(arm, leverGrip); lever.add(base, boss, leverArm); scene.add(lever);
-  for (const m of [base, boss, arm, leverGrip]) { m.userData.key = "lever"; pickables.push(m); }
+  for (const m of [base, boss, arm, leverGrip]) { m.userData.key = "lever"; m.castShadow = true; pickables.push(m); }
 
-  // A ring on the water pulses under whatever the investor should touch next.
-  pulse = new THREE.Mesh(new THREE.RingGeometry(0.8, 0.88, 72), new THREE.MeshBasicMaterial({ color:0x8B5CF6, transparent:true, opacity:0, depthWrite:false, toneMapped:false }));
+  // A ring on the ground pulses under whatever the viewer should touch next.
+  pulse = new THREE.Mesh(new THREE.RingGeometry(0.8, 0.86, 72), new THREE.MeshBasicMaterial({ color:PURPLE, transparent:true, opacity:0, depthWrite:false }));
   pulse.rotation.x = -Math.PI / 2; pulse.position.y = 0.03; scene.add(pulse);
+
+  // Cards that fly: the request packet and the result (small), the signed total (large). Thin in z so they can face the camera.
+  PKT_GEO = new RoundedBoxGeometry(0.46, 0.3, 0.03, 2, 0.015);
+  SIG_GEO = new RoundedBoxGeometry(0.8, 0.5, 0.03, 2, 0.02);
+
+  // The trail: one dotted ant-trail on the ground from Mia to the fork, then three branches shaped like the mark.
+  // Segment n runs from station n to station n+1; segment 5 is the fork. Dots under a party are dropped.
+  const STN = [{ n:1, w:"Start", at:NODES.mia.pos, mk:[0, 1.3] }, { n:2, w:"Fund", at:NODES.vault.pos, mk:[0, 1.3] }, { n:3, w:"Call", at:NODES.searchco.pos, mk:[0, 1.3] }, { n:4, w:"Sign", at:SIGN_AT, mk:[0, 1.3] }, { n:5, w:"Settle", at:FORK, mk:[-1.2, 0.9] }];
+  // The trail loops around the tree: left side, behind, right side, then back in to the tree's base.
+  const trail = new THREE.CatmullRomCurve3([[-7.2, 0.6], [-5.8, -1.2], [-3.7, -0.5], [-1.6, -1.7], [0.3, -2.4], [2.2, -2.1], [3.6, -1.3], [5.0, 0.9], [3.0, 2.0], [FORK[0], FORK[2]]].map(([x, z]) => V([x, 0.04, z])));
+  const KEEP = [[NODES.mia.pos, 1.0], [NODES.scout.pos, 0.65], [NODES.vault.pos, 1.1], [NODES.searchco.pos, 0.95], [SIGN_AT, 0.35], [FORK, 0.5]];
+  const clear = pts => pts.filter(p => KEEP.every(([a, r]) => Math.hypot(p.x - a[0], p.z - a[2]) > r));
+  const tpts = trail.getSpacedPoints(120);
+  // Segment n runs from the sample nearest station n to the one nearest station n+1 (the trail doubles back in x, so split by index).
+  const near = at => tpts.reduce((b, p, i) => Math.hypot(p.x - at[0], p.z - at[2]) < Math.hypot(tpts[b].x - at[0], tpts[b].z - at[2]) ? i : b, 0);
+  const cut = STN.map(st => near(st.at));
+  SEG = [1, 2, 3, 4].map(n => ({ n, pts:clear(tpts.slice(cut[n - 1], cut[n])), lane:null }));
+  // The fork: the mark laid flat at the tree's base, growing toward the viewer, so each pad lies in front of the branch that drops its coin.
+  const FORK_S = TREE_S, BR = { searchco:0, forage:1, scout:2 };
+  for (const [k, i] of Object.entries(BR)) {
+    const path = markPath(MARK[i], FORK_S, [FORK[0], 0.04, FORK[2]], true);
+    const pts = path.getSpacedPoints(i === 0 ? 22 : 14);
+    SEG.push({ n:5, pts:clear(pts), lane:NODES[k].color });
+    PADS[k] = path.getPoint(1).clone();
+  }
+  let total = 0; for (const seg of SEG) { seg.i0 = total; total += seg.pts.length; }
+  dots = new THREE.InstancedMesh(new THREE.CircleGeometry(0.07, 14), new THREE.MeshBasicMaterial({ transparent:true, opacity:0.95, depthWrite:false }), total);
+  for (const seg of SEG) seg.pts.forEach((p, i) => { dots.setMatrixAt(seg.i0 + i, _m.compose(p, _q.setFromAxisAngle(X, -Math.PI / 2), _s)); dots.setColorAt(seg.i0 + i, _c.setHex(0xffffff)); });
+  _q.identity(); dots.renderOrder = 2; scene.add(dots);
+  for (const st of STN) { const el = document.createElement("div"); el.className = "mk"; el.innerHTML = `<span class="n">${st.n}</span>${st.w}`; labelsEl.appendChild(el); markers[st.n] = { el, at:[st.at[0] + st.mk[0], 0.04, st.at[2] + st.mk[1]] }; }
+  // Payee pads at the three branch tips: a flat disc in the lane colour and a name. They hide with the trail.
+  pads = new THREE.Group(); scene.add(pads);
+  for (const [k, pct] of [["searchco", 91], ["forage", 4], ["scout", 5]]) {
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.05, 40), matte(NODES[k].color, { roughness:0.6 }));
+    pad.position.copy(PADS[k]).setY(0.025); pad.receiveShadow = true; pads.add(pad);
+    const el = document.createElement("div"); el.className = "mk pad"; el.style.setProperty("--c", NODES[k].css); el.textContent = `${NODES[k].name} ${pct}%`;
+    labelsEl.appendChild(el); padEls.push({ el, at:[PADS[k].x, 0.04, PADS[k].z + 1.0] });
+  }
+
+  // Chapter II, the problem: six dead-end trails from Mia's agent, each ending at a padlock and a monthly plan.
+  problem = new THREE.Group(); problem.visible = false; scene.add(problem);
+  const lockBody = new RoundedBoxGeometry(0.34, 0.26, 0.12, 3, 0.04).translate(0, 0.3, 0), lockBow = new THREE.TorusGeometry(0.11, 0.03, 8, 24, Math.PI).translate(0, 0.43, 0);
+  const lockMat = matte(0x8A8780, { metalness:0.4, roughness:0.4 });
+  const ppts = [];
+  for (const [name, price, [x, z]] of TOOLS) {
+    const t = new THREE.Group(); t.position.set(x, 0, z);
+    t.add(new THREE.Mesh(lockBody, lockMat), new THREE.Mesh(lockBow, lockMat));
+    t.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    const cv = new THREE.QuadraticBezierCurve3(V([NODES.mia.pos[0], 0.04, NODES.mia.pos[2]]), V([(NODES.mia.pos[0] + x) / 2 + 0.6, 0.04, (NODES.mia.pos[2] + z) / 2]), V([x, 0.04, z]));
+    ppts.push(...cv.getSpacedPoints(Math.round(cv.getLength() / 0.26)).filter(p => Math.hypot(p.x - NODES.mia.pos[0], p.z - NODES.mia.pos[2]) > 1.0 && Math.hypot(p.x - x, p.z - z) > 0.4));
+    const pin = new THREE.Object3D(); pin.position.set(x, 0.9, z); problem.add(t, pin);
+    problemPills.push(tagFor(pin, `${name} &middot; own key &middot; $${price}/mo`, "var(--app)", "dim hide"));
+  }
+  pdots = new THREE.InstancedMesh(dots.geometry, new THREE.MeshBasicMaterial({ color:0xC4C0B6, transparent:true, opacity:0.95, depthWrite:false }), ppts.length);
+  ppts.forEach((p, i) => pdots.setMatrixAt(i, _m.compose(p, _q.setFromAxisAngle(X, -Math.PI / 2), _s))); _q.identity();
+  pdots.renderOrder = 2; problem.add(pdots);
+
+  // Chapter III, the bigger picture, from above: many agents and apps on the left, trails converging on the vault,
+  // and trails forking out of it to many AI companies on the right. One instanced sphere set, one dashed line set, one pulse set.
+  web = new THREE.Group(); web.visible = false; scene.add(web);
+  const VC = V(NODES.vault.pos).setY(0.3);
+  const COLS = [{ n:12, name:"Agents", color:NODES.mia.color, at:i => [-11.2 + (i % 2) * 0.9, -5.5 + i * 1.0] },
+                { n:8,  name:"Apps", color:GREY, at:i => [-7.6 + (i % 2) * 0.7, -4.2 + i * 1.2] },
+                { n:10, name:"AI companies", color:NODES.searchco.color, at:i => [6.4 + (i % 2) * 1.0, -5 + i * 1.1] }];
+  const colPts = COLS.map(c => Array.from({ length:c.n }, (_, i) => { const [x, z] = c.at(i); return V([x, 0.3, z]); }));
+  const WN = COLS.reduce((a, c) => a + c.n, 0);
+  const webNodes = new THREE.InstancedMesh(new THREE.SphereGeometry(0.2, 20, 14), matte(0xffffff), WN);
+  { let i = 0; COLS.forEach((c, ci) => colPts[ci].forEach(p => { webNodes.setMatrixAt(i, _m.compose(p, _q, _s)); webNodes.setColorAt(i, _c.setHex(c.color)); i++; })); }
+  webNodes.castShadow = true;
+  // Agents to apps, apps to the vault, the vault into the tree, and the tree out to every AI company.
+  const TC = V(NODES.forage.pos).setY(0.3);
+  const links = []; // [from, to, outbound]
+  colPts[0].forEach((p, i) => links.push([p, colPts[1][i % colPts[1].length], false]));
+  colPts[1].forEach(p => links.push([p, VC, false]));
+  links.push([VC, TC, false]);
+  colPts[2].forEach(p => links.push([TC, p, true]));
+  const linePos = new Float32Array(links.length * 6);
+  links.forEach(([a, b], i) => linePos.set([a.x, a.y, a.z, b.x, b.y, b.z], i * 6));
+  const lineGeo = new THREE.BufferGeometry(); lineGeo.setAttribute("position", new THREE.BufferAttribute(linePos, 3));
+  const lines = new THREE.LineSegments(lineGeo, new THREE.LineDashedMaterial({ color:0xB5B1A8, dashSize:0.14, gapSize:0.12, transparent:true, opacity:0.9 }));
+  lines.computeLineDistances();
+  const PN = 48, pulses = new THREE.InstancedMesh(new THREE.SphereGeometry(0.07, 10, 8), new THREE.MeshBasicMaterial({ color:0xffffff }), PN);
+  for (let k = 0; k < PN; k++) pulses.setColorAt(k, _c.setHex(links[k % links.length][2] ? NODES.searchco.color : NODES.mia.color));
+  web.add(webNodes, lines, pulses);
+  COLS.forEach((c, ci) => { const el = document.createElement("div"); el.className = "mk col hide"; el.textContent = c.name; labelsEl.appendChild(el); const q = ci === 2 ? colPts[ci].at(-1) : colPts[ci][0]; webMarks.push({ el, at:[q.x + 0.4, 0.3, q.z + (ci === 2 ? 1.3 : -1.3)] }); });
+  web.userData.tick = () => {
+    for (let k = 0; k < PN; k++) {
+      const [a, b] = links[k % links.length], t = ((reduced ? 0.5 : time * 0.14) + k * 0.37) % 1;
+      _p.lerpVectors(a, b, t); _p.y += 0.1;
+      pulses.setMatrixAt(k, _m.compose(_p, _q, _s));
+    }
+    pulses.instanceMatrix.needsUpdate = true;
+    for (const w of webMarks) place(w.el, _p.set(...w.at), -4, false);
+  };
+
+  // Chapter IX: a self-dealing loop, an app calling its own tool to farm $FORAGE. It stays grey and gets nothing.
+  selfLoop = new THREE.Group(); selfLoop.position.set(6.3, 0, -0.9); selfLoop.visible = false; scene.add(selfLoop);
+  const greyMat = matte(0xA8A49B, { roughness:0.7 });
+  for (const x of [-0.42, 0.42]) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.2, 20, 14), greyMat); b.position.set(x, 0.95, 0); selfLoop.add(b); }
+  const loop = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.028, 8, 48), greyMat); loop.position.y = 0.95; selfLoop.add(loop);
+  const selfPin = new THREE.Object3D(); selfPin.position.set(0, 1.75, 0); selfLoop.add(selfPin);
+  selfPill = tagFor(selfPin, "Self-dealing loop &middot; fake calls &middot; 0 $FORAGE", "var(--muted)", "dim hide");
 
   controls = new OrbitControls(camera, canvas);
   Object.assign(controls, { enableZoom:false, enablePan:false, enableDamping:true, dampingFactor:0.08, rotateSpeed:0.55,
-    minPolarAngle:0.8, maxPolarAngle:1.32, minAzimuthAngle:-0.75, maxAzimuthAngle:0.75 });
-  controls.target.copy(LOOK);
-  canvas.style.touchAction = "pan-y"; // horizontal drag rotates, vertical swipe still scrolls the page on phones
+    minPolarAngle:0.3, maxPolarAngle:1.4, minAzimuthAngle:-0.9, maxAzimuthAngle:0.9 });
+  controls.target.copy(focus);
+  // A hand on the camera wins over the cinematic one. Letting go resumes a pending shot from wherever the hand left it.
+  controls.addEventListener("start", () => { cam.user = true; });
+  controls.addEventListener("change", () => { if (cam.user) cam.base = null; }); // a real drag ends the drift; a plain click does not
+  controls.addEventListener("end", () => { cam.user = false; if (cam.to) { cam.from = { p:camera.position.clone(), l:focus.clone() }; cam.t0 = performance.now(); } });
+  canvas.style.touchAction = "pan-y";
 
+  // The text block sits left (desktop) or bottom (phone); the view is offset so the trail centres in the space that is left.
   const frameCamera = () => {
     W = map.clientWidth; H = map.clientHeight; gl.setSize(W, H, false); camera.aspect = W / H;
-    // Full screen: a wider lens fits the market into the gap between the panels, and the view shifts to centre it there.
-    const full = getComputedStyle(map).position === "fixed";
-    camera.fov = full ? 57 : W < 500 ? 42 : 38;
-    const l = full ? document.querySelector(".hud").getBoundingClientRect().right : 0;
-    const r = full ? document.querySelector(".receipt").getBoundingClientRect().left : W;
-    const shift = full ? (l + r) / 2 - W / 2 : 0;
-    if (shift) camera.setViewOffset(W, H, -shift, 0, W, H); else camera.clearViewOffset();
+    const phone = innerWidth <= 800, r = story.getBoundingClientRect();
+    camera.fov = phone ? 62 : 57;
+    if (phone) camera.setViewOffset(W, H, 0, r.height * 0.35, W, H);
+    else camera.setViewOffset(W, H, -((r.right + W - 180) / 2 - W / 2), 0, W, H);
     camera.updateProjectionMatrix();
   };
   new ResizeObserver(frameCamera).observe(map);
+  new ResizeObserver(frameCamera).observe(story);
   addEventListener("resize", frameCamera);
 
-  // Hover shows a party's role; a click (not a drag) moves the camera's focus to it, or back to the whole market.
+  // Hover shows a party's role. Clicking the thing that pulses does the step; dragging empty ground turns the view.
   const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
   let hover = null, down = null;
   const pick = e => { const r = canvas.getBoundingClientRect(); ptr.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height * 2 - 1)); ray.setFromCamera(ptr, camera); const h = ray.intersectObjects(pickables, false)[0]; return h ? h.object.userData.key : null; };
   const floorAt = (e, y) => { const r = canvas.getBoundingClientRect(); ptr.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height * 2 - 1)); ray.setFromCamera(ptr, camera); return ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), new THREE.Vector3()); };
-  // Capture phase on the map runs before OrbitControls' own pointerdown, so an orb or lever drag never rotates the scene.
+  // Capture phase on the map runs before OrbitControls' own pointerdown, so a packet or lever drag never rotates the scene.
   map.addEventListener("pointerdown", e => {
     if (e.target !== canvas) return;
     down = [e.clientX, e.clientY];
     const k = pick(e), t = target();
     if (!t || k !== t) return;
     if (t === "mia" && s.searches === 0) {
-      const coin = orb(NODES.mia.color);
-      coin.position.copy(spot("mia")); scene.add(coin);
-      drag = { kind:"coin", coin };
+      const pk = packet(NODES.mia.color, NODES.mia.css, SEARCHES[0][0]);
+      pk.position.copy(spot("mia")); scene.add(pk);
+      drag = { kind:"coin", mesh:pk };
+      cam.to = null; cam.base = null; // the camera holds still while the user drags
     } else if (t === "lever") drag = { kind:"lever", y:e.clientY };
-    if (drag) { controls.enabled = false; canvas.setPointerCapture(e.pointerId); }
+    if (drag) { controls.enabled = false; canvas.setPointerCapture(e.pointerId); if (hover) { nodeEls[hover]?.el.classList.remove("hot"); glow(hover, 0); hover = null; } }
   }, true);
   canvas.addEventListener("pointermove", e => {
     if (!drag) { par.x = e.clientX / innerWidth - 0.5; par.y = e.clientY / innerHeight - 0.5; }
-    if (drag?.kind === "coin") { const p = floorAt(e, 0.9); if (p) drag.coin.position.set(p.x, 0.9, p.z); return; }
+    if (drag?.kind === "coin") { const p = floorAt(e, 1.2); if (p) drag.mesh.position.set(p.x, 1.2, p.z); return; }
     if (drag?.kind === "lever") { leverT = Math.min(1, Math.max(0, (e.clientY - drag.y) / 70)); return; }
     const k = pick(e);
     if (k === hover) return;
@@ -568,94 +710,137 @@ if (gl) {
     const moved = down ? Math.hypot(e.clientX - down[0], e.clientY - down[1]) : 99;
     down = null;
     if (drag) {
-      const d = drag; drag = null; controls.enabled = true;
+      const d = drag; drag = null; controls.enabled = true; dragEnded = performance.now();
       if (d.kind === "coin") {
-        const p = d.coin.position, sc = NODES.searchco.pos;
-        if (Math.hypot(p.x - sc[0], p.z - sc[2]) < 1.2) { scene.remove(d.coin); next(); }
+        const p = d.mesh.position, sc = NODES.searchco.pos;
+        if (Math.hypot(p.x - sc[0], p.z - sc[2]) < 1.3) { kill(d.mesh); userAct(); }
         else {
-          if (moved > 5) nudge("Almost. Drop the orb on SearchCo, the teal crystal.");
-          else nudge("Drag it: hold Mia's agent, move to SearchCo, let go.");
-          flight(d.coin, p.clone(), spot("mia"), 420, 0.3);
+          if (moved > 5) nudge("Almost. Drop the search on SearchCo, the server rack.");
+          else nudge("Drag it: hold Mia's agent, move right to SearchCo, let go.");
+          flight(d.mesh, p.clone(), spot("mia"), 420, 0.3, { follow:false });
         }
-      } else if (leverT > 0.5 || moved < 6) { leverTo = 1; next(); }
+      } else if (leverT > 0.5 || moved < 6) { leverTo = 1; userAct(); }
       else nudge("Pull the lever further toward you.");
       return;
     }
     if (moved > 5) return;
-    const k = pick(e), t = target();
-    if (k && k === t) { next(); return; }
-    if (k === "lever") return;
-    focus = k ? V(NODES[k].pos).setY(0.5) : LOOK.clone();
-    $("hint").textContent = k ? `Focused on ${NODES[k].name}. Click empty space to see the whole market.` : "Drag to rotate. Hover a party for its role. Click one to focus.";
+    const k = pick(e);
+    if (k && k === target()) userAct();
   });
+  // Phone: a vertical swipe on the ground turns the page.
+  let touch0 = null;
+  map.addEventListener("touchstart", e => { touch0 = [e.touches[0].clientX, e.touches[0].clientY]; }, { passive:true });
+  map.addEventListener("touchend", e => {
+    if (!touch0 || drag || performance.now() - dragEnded < 150) return;
+    const dx = e.changedTouches[0].clientX - touch0[0], dy = e.changedTouches[0].clientY - touch0[1]; touch0 = null;
+    if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) { stopWatch(); goTo(ch + (dy < 0 ? 1 : -1)); }
+  }, { passive:true });
 }
 
 function place(el, v, dy, below) {
   _v.copy(v).project(camera);
   const x = (_v.x + 1) / 2 * W, y = (1 - _v.y) / 2 * H;
+  // Hide anything behind the camera or well outside the frame instead of pinning it to a corner.
+  const off = _v.z > 1 || Math.abs(_v.x) > 1.15 || Math.abs(_v.y) > 1.15;
+  if (el.style.visibility !== (off ? "hidden" : "")) el.style.visibility = off ? "hidden" : "";
   el.style.transform = `translate(-50%, ${below ? "0" : "-100%"}) translate(${x.toFixed(1)}px, ${(y + dy).toFixed(1)}px)`;
 }
 function placeLabels() {
-  for (const [k, n] of Object.entries(NODES)) place(nodeEls[k].el, _p.copy(nodes[k].position).add(_v.set(...n.lab)), n.below ? 10 : -6, n.below);
+  for (const [k, n] of Object.entries(NODES)) place(nodeEls[k].el, _p.copy(nodes[k].position).add(_v.set(0, n.lab ?? n.h + 0.3, 0)), -6, false);
 }
 
-// Idle: parties bob and turn a little, lotus rock on the water, glitter drifts. Flights move orbs along an arc.
+// Idle: nothing bobs; this is a calm place. Flights move things along their curve; the camera dollies and drifts.
 let time = 0, running = false;
 const clock = new THREE.Clock();
 const ease = k => k < .5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
-function placeLotus() {
-  for (let i = 0; i < lotus.count; i++) {
-    const [x, z, ph] = lotus.userData.at[i];
-    _q.setFromAxisAngle(UP, ph).multiply(_q2.setFromAxisAngle(X, reduced ? 0 : Math.sin(time * 0.7 + ph) * 0.06));
-    lotus.setMatrixAt(i, _m.compose(_p.set(x, 0.02 + (reduced ? 0 : Math.sin(time * 0.8 + ph) * 0.03), z), _q, _s));
-  }
-  lotus.instanceMatrix.needsUpdate = true; _q.identity();
-}
 function frame() {
   if (!running) return;
   requestAnimationFrame(frame);
   const dt = Math.min(clock.getDelta(), 0.05); time += dt;
-  uniforms.t.value = reduced ? 0 : time;
-  if (!reduced) {
-    for (const [k, m] of Object.entries(nodes)) {
-      if (k === "vault") { m.position.y = Math.sin(time * 0.8) * 0.02; m.rotation.z = Math.sin(time * 0.6) * 0.012; continue; }
-      m.position.y = NODES[k].pos[1] + Math.sin(time * 0.9 + k.length) * 0.08;
-      if (m.userData.yaw === 0) m.rotation.y = Math.sin(time * 0.5 + k.length) * 0.22;
-      else m.rotation.y += dt * (k === "forage" ? 0.25 : 0.12);
-    }
-    placeLotus();
-  } else if (!lotus.userData.placed) { lotus.userData.placed = true; placeLotus(); }
+  if (web.visible) web.userData.tick(dt);
+  leaves.userData.tick();
   const now = performance.now();
   for (let i = flights.length - 1; i >= 0; i--) {
-    const f = flights[i], k = (now - f.t0) / f.ms, e = ease(Math.min(1, k));
-    if (!f.landed) f.curve.getPoint(e, f.coin.position);
+    const f = flights[i], k = (now - f.t0) / f.ms, e = (f.ease || ease)(Math.min(1, k));
+    if (!f.landed) { f.curve.getPoint(e, f.mesh.position); if (f.spin) { f.mesh.rotation.z += dt * 7; f.mesh.rotation.y += dt * 1.5; } }
     if (f.trail) {
       const a = Math.floor(ease(Math.min(1, Math.max(0, k - 0.3))) * TUB) * 48, b = Math.floor(e * TUB) * 48;
       for (const t of f.trail.children) t.geometry.setDrawRange(a, Math.max(0, b - a));
     }
-    if (k >= 1 && !f.landed) { f.landed = true; scene.remove(f.coin); f.coin.geometry.dispose(); f.coin.material.dispose(); f.res(); }
+    if (k >= 1 && !f.landed) { f.landed = true; if (chase && chase.mesh === f.mesh) chase.end = now; if (f.flat) f.mesh.rotation.set(0, 0, 0); if (!f.keep) kill(f.mesh); f.res(); }
     if (k >= (f.trail ? 1.3 : 1)) {
       if (f.trail) { scene.remove(f.trail); for (const t of f.trail.children) { t.geometry.dispose(); t.material.dispose(); } }
       flights.splice(i, 1);
     }
+  }
+  // The signed total counts up on the card while it flies to the signpost; the one it replaces drifts up and fades.
+  if (sig.cur) {
+    const v = sig.a + (sig.b - sig.a) * ease(reduced ? 1 : Math.min(1, (now - sig.t0) / 900));
+    sig.el.querySelector(".amt").textContent = usd(Math.round(v / 100) * 100);
+  }
+  for (let i = sig.fading.length - 1; i >= 0; i--) {
+    const f = sig.fading[i], k = reduced ? 1 : Math.min(1, (now - f.t0) / 900);
+    f.m.position.y = f.y0 + ease(k) * 0.6;
+    f.m.traverse(o => { if (o.material) o.material.opacity = (1 - k) * 0.95; });
+    const t = tracked.find(t => t.obj === f.m); if (t) t.el.style.opacity = 1 - k;
+    if (k >= 1) { kill(f.m); sig.fading.splice(i, 1); }
+  }
+  for (const o of scene.children) if (o.userData.face) o.quaternion.copy(camera.quaternion);
+  // The safe hops when settlement opens it.
+  if (vaultPop > 0) { vaultPop -= dt * 1.6; nodes.vault.scale.setScalar(1 + 0.1 * Math.sin(Math.max(0, vaultPop) * Math.PI)); }
+  // The trail: finished segments go ink (the fork's branches take their lane colour), the live one carries a purple wave, the rest stay pale.
+  const rs = routeState();
+  for (const seg of SEG) {
+    const st = rs.done.includes(seg.n) ? 1 : seg.n === rs.on ? 2 : 0, len = seg.pts.length;
+    for (let i = 0; i < len; i++) {
+      if (st === 2) { const w = reduced ? 0.3 : Math.pow(0.5 + 0.5 * Math.cos((i / len - time * 0.45) * 12.566), 5); _c.setHex(PURPLE).lerp(WHITE, w * 0.85); }
+      else _c.setHex(st ? (seg.lane ?? 0x3A3A3A) : 0xC4BFB5);
+      dots.setColorAt(seg.i0 + i, _c);
+    }
+  }
+  dots.instanceColor.needsUpdate = true;
+  for (const n in markers) {
+    const st = rs.done.includes(+n) ? 1 : +n === rs.on ? 2 : 0;
+    const cls = "mk" + (st === 1 ? " done" : st === 2 ? " on" : "") + (dots.visible ? "" : " hide");
+    if (markers[n].el.className !== cls) markers[n].el.className = cls;
   }
   const t = target();
   if (t !== pulsed) { glow(pulsed, 0); pulsed = t; }
   if (t) {
     const at = t === "lever" ? lever.position : V(NODES[t].pos), ph = reduced ? 0.4 : (time * 0.9) % 1;
     pulse.position.set(at.x, 0.03, at.z);
-    pulse.scale.setScalar((t === "lever" ? 0.55 : t === "vault" ? 1.35 : 0.95) * (1 + ph * 0.35));
+    pulse.scale.setScalar((t === "lever" ? 0.55 : t === "vault" ? 1.35 : 1.0) * (1 + ph * 0.35));
     pulse.material.opacity = 0.7 * (1 - ph);
-    glow(t, 0x6D28D9, reduced ? 0.2 : 0.14 + 0.1 * Math.sin(time * 5));
+    glow(t, PURPLE, reduced ? 0.2 : 0.14 + 0.1 * Math.sin(time * 5));
   } else pulse.material.opacity = 0;
   if (drag?.kind !== "lever") leverT += (leverTo - leverT) * Math.min(1, dt * (reduced ? 60 : 8));
   leverArm.rotation.x = -0.4 + leverT * 1.5;
+  // Cinematic camera: an eased dolly to the chapter's shot, then a slow drift around it. The user's own drag overrides both.
+  // Hold on a landed thing for a moment, then hand back to the chapter shot; a new flight in that window keeps the chase going.
+  if (chase && chase.end && now - chase.end > 900 * pace) { chase = null; if (lastShot) shot(lastShot, 1500); }
+  if (chase && !cam.user) {
+    // Glide to the close-up, and let the aim lean toward the moving thing so the eye follows it.
+    camera.position.lerp(chase.cam, 1 - Math.exp(-dt * 3));
+    _p.copy(chase.mid).lerp(chase.mesh.position, 0.45); focus.lerp(_p, 1 - Math.exp(-dt * 5));
+    cam.to = null; cam.base = null;
+  } else if (cam.to && !cam.user) {
+    const k = Math.min(1, (now - cam.t0) / cam.ms), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+    camera.position.lerpVectors(cam.from.p, cam.to.p, e); focus.lerpVectors(cam.from.l, cam.to.l, e);
+    if (k >= 1) { cam.base = cam.to; cam.to = null; cam.t1 = now; }
+  } else if (cam.base && !cam.user && !reduced && !small) {
+    const g = Math.min(1, (now - cam.t1) / 4000) * cam.amp;
+    _v.subVectors(cam.base.p, cam.base.l).applyAxisAngle(UP, Math.sin(time * 0.12) * g); _v.y += Math.sin(time * 0.17) * g * 0.6;
+    camera.position.copy(cam.base.l).add(_v);
+  }
   // Slight parallax: the camera's aim drifts a little toward the mouse.
   _v.copy(focus); if (!reduced) { _v.x += par.x * 0.22; _v.y -= par.y * 0.14; }
   controls.target.lerp(_v, Math.min(1, dt * 4));
   controls.update();
   gl.render(scene, camera);
   placeLabels();
+  for (const t of tracked) place(t.el, t.obj.getWorldPosition(_p), t.dy, false);
+  for (const n in markers) place(markers[n].el, _p.set(...markers[n].at), -4, false);
+  for (const p of padEls) { place(p.el, _p.set(...p.at), -4, false); p.el.classList.toggle("hide", !dots.visible); }
 }
 function start() { if (running || !gl) return; running = true; clock.getDelta(); requestAnimationFrame(frame); }
 function stop() { running = false; }
@@ -663,173 +848,364 @@ let visible = false;
 new IntersectionObserver(([e]) => { visible = e.isIntersecting; visible && !document.hidden ? start() : stop(); }).observe(map);
 document.addEventListener("visibilitychange", () => document.hidden ? stop() : visible && start());
 
-// Where a flight leaves from or lands: just above the party, or on top of the vault's pearl stack.
+// Where a flight leaves from or lands: above the party's head, or just above the vault's coin row.
 function spot(k) {
-  if (k === "vault") return V(NODES.vault.pos).setY(VAULT_TOP + Math.ceil(coins.count / 4) * 0.065 + 0.15);
-  return nodes[k].position.clone().add(_v.set(0, 0.2, 0));
+  if (k === "vault") return V(NODES.vault.pos).setY(VAULT_TOP + 0.35);
+  if (k === "forage") return V(NODES.forage.pos).add(_v.set(0, 0.55, 0.3)); // the foot of the trunk
+  return nodes[k].position.clone().add(_v.set(0, NODES[k].h * 0.8, 0));
 }
 
-// A glowing pearl orb in a party's colour, the thing that travels.
-function orb(color, r = 0.12) {
-  return new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), pearl(_c.setHex(color).lerp(WHITE, 0.45).getHex(), { emissive:color, emissiveIntensity:0.35, roughness:0.1 }));
+// An HTML pill that follows a 3D object until the object is killed.
+function tagFor(obj, html, css, cls = "", dy = -12) {
+  const el = document.createElement("div"); el.className = "tag3 " + cls; el.style.visibility = "hidden"; el.style.setProperty("--c", css); el.innerHTML = html;
+  labelsEl.appendChild(el); tracked.push({ obj, el, dy }); return el;
 }
+// Remove a flying thing and its pill. Geometries are shared, materials are per thing.
+function untag(m) { const i = tracked.findIndex(t => t.obj === m); if (i >= 0) { tracked[i].el.remove(); tracked.splice(i, 1); } }
+function kill(m) {
+  scene.remove(m); m.traverse(o => { if (o.material && !o.userData.shared) o.material.dispose(); });
+  untag(m);
+}
+// The money that moves: the vault's coin geometry, big, with the Forage mark stamped on both faces.
+// Tinted toward a party's colour when one is given; solid keeps the colour pure, for the $FORAGE token.
+function bigCoin(hex, sc = 1, solid = false) {
+  const m = coins.material.clone();
+  if (hex != null) m.color.copy(solid ? _c.setHex(hex) : _c.setHex(hex).lerp(WHITE, 0.45));
+  if (m.emissive) { m.emissive.setHex(hex ?? 0xE2B45A); m.emissiveIntensity = solid ? 0.35 : 0.2; }
+  const c = new THREE.Mesh(coins.geometry, m); c.scale.setScalar(sc); c.castShadow = true;
+  for (const y of [0.06, -0.06]) {
+    const st = (solid ? stampWhite : stamp).clone(); st.position.set(0, y, y > 0 ? 0.1 : -0.1); if (y < 0) st.rotation.x = Math.PI / 2;
+    st.traverse(o => { o.userData.shared = true; }); c.add(st);
+  }
+  return c;
+}
+const token = () => gl ? bigCoin(PURPLE, 0.9, true) : null;
+// A white card with a lane-coloured glow that always faces the camera: the request, the result, the signed total.
+function card(geo, hex) {
+  const m = new THREE.Mesh(geo, matte(0xffffff, { emissive:hex, emissiveIntensity:0.18, roughness:0.4, transparent:true, opacity:0.95 }));
+  m.userData.face = true; m.castShadow = true; return m;
+}
+const packet = (hex, css, text) => { const m = card(PKT_GEO, hex); tagFor(m, text, css); return m; };
 
-// An orb follows an arc from A to B. With a colour, a light trail in that colour follows it and fades out after landing. Resolves on landing.
-function flight(coin, A, B, ms, hop, color) {
-  const mid = A.clone().lerp(B, 0.5); mid.y = 2 * (Math.max(A.y, B.y) + hop) - (A.y + B.y) / 2;
-  const curve = new THREE.QuadraticBezierCurve3(A, mid, B);
+// A mesh follows an arc from A to B. opts: color (a trail in that colour fades out after landing), keep (the mesh
+// stays for a next hop instead of being killed on landing), spin (coin flip), curve (its own path instead of the arc),
+// flat (lie flat on landing), ease (its own timing curve, for a drop). Resolves on landing.
+function flight(mesh, A, B, ms, hop, o = {}) {
+  ms *= pace;
+  let curve = o.curve;
+  if (!curve) { const mid = A.clone().lerp(B, 0.5); mid.y = 2 * (Math.max(A.y, B.y) + hop) - (A.y + B.y) / 2; curve = new THREE.QuadraticBezierCurve3(A, mid, B); }
   let trail = null;
-  if (color != null) {
+  if (o.color != null) {
     trail = new THREE.Group();
-    const c = _c.setHex(color).lerp(WHITE, 0.3).getHex();
-    for (const [r, o] of [[0.04, 0.95], [0.13, 0.28]]) trail.add(new THREE.Mesh(new THREE.TubeGeometry(curve, TUB, r, 8, false), new THREE.MeshBasicMaterial({ color:c, transparent:true, opacity:o, depthWrite:false, toneMapped:false })));
+    for (const [r, op] of [[0.035, 0.95], [0.12, 0.22]]) trail.add(new THREE.Mesh(new THREE.TubeGeometry(curve, TUB, r, 8, false), new THREE.MeshBasicMaterial({ color:o.color, transparent:true, opacity:op, depthWrite:false })));
     scene.add(trail);
   }
-  return new Promise(res => flights.push({ coin, curve, trail, t0:performance.now(), ms, res, landed:false }));
+  // Close-up of the whole move: aim between where it starts and where it lands, near enough that both fill the frame.
+  if (o.follow !== false && gl && !reduced && !quick && (!chase || chase.end)) {
+    const a = curve.getPoint(0), b = curve.getPoint(1), mid = a.clone().lerp(b, 0.5), span = Math.max(1.2, a.distanceTo(b));
+    chase = { mesh, end:0, mid, cam:mid.clone().add(_v.set(0, 0.32 * span + 0.9, 0.62 * span + 1.7)) };
+  }
+  return new Promise(res => flights.push({ mesh, curve, trail, t0:performance.now(), ms, res, keep:!!o.keep, spin:!!o.spin, flat:!!o.flat, ease:o.ease, landed:false }));
 }
 
-// An orb hops from a to b in an arc with a trail. r sets the orb size.
-function fly(a, b, color, ms = 650, r = 8) {
+// Send a mesh from party a to party b. With reduced motion, or when catching up, nothing flies; the step just happens.
+function fly(a, b, mesh, ms, hop, o) {
   if (!gl) return sleep(ms / 2);
-  if (reduced) return sleep(80);
-  const coin = orb(color, 0.09 + r * 0.008); scene.add(coin);
-  return flight(coin, spot(a), spot(b), ms, 0.9 + r * 0.06, color);
+  if (reduced || quick) { if (mesh) kill(mesh); return sleep(quick ? 0 : 80); }
+  if (!mesh.parent) scene.add(mesh);
+  return flight(mesh, spot(a), spot(b), ms, hop, o);
 }
 
-// What the investor should touch now. Nothing pulses while orbs are flying or Play all is running.
+// Ease the camera to a shot. With reduced motion it cuts. While catching up it waits for the chapter's own shot.
+// On a phone the camera stands further back so the wide trail fits.
+function shot([p, l, amp, far = 1.45], ms = 1800) {
+  if (!gl || quick) return;
+  const to = { p:V(p), l:V(l) }; cam.amp = amp;
+  if (small) to.p.sub(to.l).multiplyScalar(far).add(to.l);
+  if (reduced) { camera.position.copy(to.p); focus.copy(to.l); controls.target.copy(to.l); cam.base = null; return; }
+  cam.from = { p:camera.position.clone(), l:focus.clone() }; cam.to = to; cam.t0 = performance.now(); cam.ms = ms * pace;
+  lastShot = arguments[0];
+}
+
+// Which trail segments are finished and which one is live, from the state plus what the busy step is doing.
+function routeState() {
+  const base = s.step === 0 ? [] : s.step === 1 ? (s.searches ? [1, 2, 3] : [1]) : s.step === 2 ? [1, 2, 3] : [1, 2, 3, 4, 5];
+  const on = busy && phase ? { fund:1, call:2, sign:3, settle:4, split:5 }[phase] : s.step === 0 ? 1 : s.step === 1 ? 2 : s.step === 2 ? 4 : 0;
+  return { done:base.filter(n => n !== on), on };
+}
+
+// Mia signs a new running total: a card leaves her agent and lands on the signpost, counting up from the old total.
+// The card it replaces drifts up and fades.
+function sign(from, to, n) {
+  if (!gl) return;
+  if (sig.cur) sig.fading.push({ m:sig.cur, t0:performance.now(), y0:sig.cur.position.y });
+  const m = card(SIG_GEO, PURPLE); m.position.copy(spot("mia")); scene.add(m);
+  sig.cur = m; sig.t0 = performance.now(); sig.a = from; sig.b = to;
+  sig.el = tagFor(m, `<b>Signature #${n}${n > 1 ? `, replaces #${n - 1}` : ""}</b><span class="amt"></span><small>owed to SearchCo. Nothing paid.</small>`, "var(--forage)", "sig", 36);
+  if (reduced || quick) { m.position.copy(BOARD); return Promise.resolve(); }
+  return flight(m, spot("mia"), BOARD.clone(), 900, 1.2, { color:PURPLE, keep:true });
+}
+function clearSigs() { if (sig.cur) kill(sig.cur); for (const f of sig.fading) kill(f.m); sig.cur = null; sig.fading = []; }
+
+// What the viewer should touch now, in this chapter. Nothing pulses while things are flying or the story is playing itself.
 function target() {
   if (!gl || !s || busy || playing || drag?.kind === "coin") return drag?.kind === "lever" ? "lever" : null;
-  return s.step === 0 ? "vault" : s.step === 1 ? "mia" : s.step === 2 ? "lever" : null;
+  if (ch === 4 && s.step === 0) return "vault";
+  if (ch === 5 && s.step === 1) return "mia";
+  if (ch === 7 && s.step === 2) return "lever";
+  return null;
 }
 const pulseMesh = k => !k ? null : k === "lever" ? leverGrip : nodes[k].userData.body;
 function glow(k, hex, i = 1) { pulseMesh(k)?.traverse(o => { if (o.isMesh && o.material.emissive) { o.material.emissive.setHex(hex); o.material.emissiveIntensity = o.material.map ? i * 0.35 : i; } }); }
 function nudge(text) { const a = $("act"); a.textContent = text; a.classList.add("warn"); }
 
-// The receipt card leans toward the mouse, a few degrees at most.
-if (!reduced) {
-  const card = document.querySelector(".card.receipt");
-  card.addEventListener("mousemove", e => {
-    const r = card.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
-    card.style.transform = `rotateX(${-y * 6}deg) rotateY(${x * 6}deg) translateZ(8px)`;
-  });
-  card.addEventListener("mouseleave", () => { card.style.transform = ""; });
-}
-
-function flipReceipt() {
-  const rows = document.querySelector(".rows");
-  rows.classList.remove("flip"); void rows.offsetWidth; rows.classList.add("flip");
-}
-
 let s, busy = false, playing = false;
 function reset() {
   s = { step:0, searches:0, total:0, bal:{ mia:DEPOSIT, scout:0, searchco:0, vault:0, forage:0 }, delta:{} };
-  leverTo = 0;
-  $("log").innerHTML = "";
-  $("split").classList.remove("show");
+  leverTo = 0; phase = null;
+  if (gl) { clearSigs(); for (const c of padCoins) kill(c); padCoins = []; for (const l of LEAF) l.on = true; }
   render();
 }
-
+// A party's balance pill jumps when money lands on it.
+function land(k, v) {
+  s.bal[k] += v; s.delta[k] = v; render();
+  const el = nodeEls[k].el; el.classList.remove("land"); void el.offsetWidth; el.classList.add("land");
+}
 function move(changes) {
   s.delta = {};
   for (const [k, v] of Object.entries(changes)) { s.bal[k] += v; s.delta[k] = v; }
 }
 
-async function next() {
-  if (busy) return;
-  busy = true; setButtons();
-  if (s.step === 0) {
-    await fly("mia", "vault", NODES.mia.color, 800, 10);
-    move({ mia:-DEPOSIT, vault:DEPOSIT });
-    s.step = 1;
-  } else if (s.step === 1) {
-    s.delta = {}; render();
-    await fly("mia", "scout", NODES.mia.color, 450, 6);
-    await fly("scout", "searchco", NODES.mia.color, 450, 6);
-    await fly("searchco", "mia", NODES.searchco.color, 650, 6);
-    const [q, r] = SEARCHES[s.searches];
-    s.searches++; s.total += PRICE;
-    flipReceipt();
-    $("log").insertAdjacentHTML("afterbegin", `<li><span class="q">${s.searches}. ${q}</span><br><span class="r">${r}</span></li>`);
-    if (s.searches === SEARCHES.length) s.step = 2;
-  } else if (s.step === 2) {
-    leverTo = 1;
-    const p = split(s.total);
-    await Promise.all([fly("vault", "searchco", NODES.searchco.color, 900, 11), fly("vault", "scout", NODES.scout.color, 900, 7), fly("vault", "forage", NODES.forage.color, 900, 6)]);
-    move({ vault:-s.total, searchco:p.supplier, forage:p.forage, scout:p.app });
-    s.step = 3;
-  } else {
-    reset();
-  }
-  busy = false;
+// The mechanics. Each one moves s.step forward; the chapters call them, by hand or when the viewer presses Next.
+async function fund() {
+  // One big gold coin leaves Mia's agent and drops into the safe.
+  phase = "fund"; shot(SHOT.fund, 1400); await wait(500);
+  const c = gl ? bigCoin(null, 1.6) : null; if (c) tagFor(c, "$1.00 deposit", NODES.mia.css);
+  await fly("mia", "vault", c, 1500, 1.4, { color:NODES.mia.color, spin:true });
+  move({ mia:-DEPOSIT, vault:DEPOSIT });
+  s.step = 1; render();
+  await wait(400);
+}
+async function call() {
+  // The request rides Mia -> Scout -> SearchCo along the trail, the result rides back. Then a new signed total goes up on the signpost.
+  const [q, r, price] = SEARCHES[s.searches];
+  phase = "call"; shot(s.searches % 2 ? SHOT.callR : SHOT.callL, 1400);
+  s.delta = {}; render();
+  const pk = gl ? packet(NODES.mia.color, NODES.mia.css, q) : null;
+  await fly("mia", "scout", pk, 550, 0.7, { color:NODES.mia.color, keep:true });
+  await fly("scout", "searchco", pk, 700, 0.9, { color:NODES.mia.color });
+  await fly("searchco", "mia", gl ? packet(NODES.searchco.color, NODES.searchco.css, `${r} &middot; ${usd(price)}`) : null, 900, 1.2, { color:NODES.searchco.color });
+  s.searches++; s.total += price;
+  phase = "sign"; await sign(s.total - price, s.total, s.searches);
+  if (s.searches === SEARCHES.length) s.step = 2;
   render();
+  await wait(500);
+}
+// A point in a branch's canopy, near the tip, with a little scatter.
+const canopy = (k, j = 0) => TREE[k].getPoint(0.86 + rnd() * 0.08).add(_v.set((rnd() - 0.5) * j, (rnd() - 0.5) * j, (rnd() - 0.5) * j));
+// Thin a branch by the share it pays: the leaves nearest the tip go; they come back on Replay. Returns the leaves that fell.
+function thin(k, pct) {
+  const on = LEAF.filter(l => l.k === k && l.on), n = Math.min(on.length - 4, 2 + Math.round(pct * 0.08)); // ponytail: 2 + 8% of the share (9, 2, 2), so even the 4% branch visibly loses leaves
+  const fell = on.slice(-n); for (const l of fell) l.on = false; return fell;
+}
+// The leaves that fell tumble down and lie around the pad until Replay.
+function flurry(fell, k) {
+  for (const l of fell) {
+    const m = new THREE.Mesh(leaves.geometry, leaves.material.clone()); m.material.color.setHex(TINT[k]); m.castShadow = true;
+    m.scale.copy(LEAF_S); m.quaternion.copy(l.q); scene.add(m); padCoins.push(m);
+    const a = rnd() * 6.283, d = 0.55 + rnd() * 0.5;
+    flight(m, l.pos.clone(), PADS[k].clone().add(_v.set(Math.cos(a) * d, 0.03, Math.sin(a) * d)), 900 + rnd() * 500, 0.2, { spin:true, keep:true, flat:true, follow:false });
+  }
+}
+// A coin drops from a branch tip onto the pad below it, bounces once and settles. The curve has three equal legs
+// (fall, bounce up, bounce down), so the timing curve spends 55% of the time on the fall, accelerating like a drop.
+const dropEase = k => k < 0.55 ? Math.pow(k / 0.55, 1.7) / 3 : 1 / 3 + (k - 0.55) / 0.45 * 2 / 3;
+const dropCurve = (from, pad) => new THREE.CatmullRomCurve3([from, pad.clone().setY(0.2), pad.clone().add(_v.set(0, 0.55, 0.12)), pad.clone().add(_v.set(0, 0.16, 0.2))], false, "centripetal");
+
+async function settle() {
+  // The lever opens the safe. The settled amount goes up into the tree's trunk, then each branch drops one coin, sized by share, onto its pad.
+  phase = "settle"; leverTo = 1; shot(SHOT.settle, 1200); await wait(600);
+  const p = split(s.total);
+  move({ vault:-s.total }); render(); vaultPop = 1; phase = "split"; clearSigs();
+  if (gl && !(reduced || quick)) {
+    const into = TREE.searchco.getPoint(0.24), lead = bigCoin(null, 1.3); tagFor(lead, `${usd(s.total)} settled`, "var(--ink)");
+    await Promise.all([0, 1, 2, 3].map(async i => {
+      await wait(i * 150);
+      const c = i ? bigCoin(null, 0.6) : lead; scene.add(c);
+      await flight(c, spot("vault"), into.clone(), 1500, 1.3, i ? { spin:true, follow:false } : { color:0x3A3A3A, spin:true });
+    }));
+    await wait(250);
+  }
+  shot(SHOT.split, 2200);
+  const shares = [["searchco", p.supplier, 91, 1.7, 0], ["forage", p.forage, 4, 0.85, 320], ["scout", p.app, 5, 0.95, 640]];
+  await Promise.all(shares.map(async ([k, v, pct, sc, delay]) => {
+    await wait(delay);
+    const c = gl ? bigCoin(NODES[k].color, sc) : null; if (c) tagFor(c, `${pct}% ${usd(v)}`, NODES[k].css);
+    if (gl && !(reduced || quick)) {
+      const from = canopy(k); c.position.copy(from); scene.add(c); padCoins.push(c);
+      flurry(thin(k, pct), k);
+      await flight(c, null, null, 1500, 0, { curve:dropCurve(from, PADS[k]), ease:dropEase, color:NODES[k].color, spin:true, keep:true, flat:true });
+      untag(c);
+      // From the pad the coin carries on to the party it pays, and the balance changes when it arrives.
+      padCoins.splice(padCoins.indexOf(c), 1);
+      await flight(c, c.position.clone(), spot(k), 1300, 1.2, { color:NODES[k].color, spin:true });
+    } else { if (gl) thin(k, pct); if (c) kill(c); }
+    land(k, v);
+  }));
+  s.step = 3; render();
+  await wait(400);
+}
+async function advance() { if (s.step === 0) await fund(); else if (s.step === 1) await call(); else if (s.step === 2) await settle(); }
+
+// The viewer did the chapter's move in the scene. Run it; when that finishes the chapter, turn the page.
+async function userAct() {
+  if (busy) return;
+  busy = true; render();
+  await advance();
+  busy = false; phase = null; render();
+  if (ch === 4 && s.step === 1) goTo(5);
+  else if (ch === 5 && s.step === 2) goTo(6);
 }
 
+// Proposed $FORAGE: purple tokens drop out of the tree's purple canopy, then glide to Mia, SearchCo and Scout. The self-dealing loop gets none.
+let rainId = 0;
+async function rain() {
+  const id = ++rainId;
+  for (let round = 0; round < 3 && ch === 8 && rainId === id; round++) {
+    await Promise.all(["mia", "searchco", "scout"].map(async (k, j) => {
+      await wait(j * 260);
+      const t = token(); if (t) tagFor(t, "$FORAGE", "var(--forage)");
+      if (!gl) { await sleep(850); return; }
+      if (reduced || quick) { kill(t); await sleep(80); return; }
+      // Straight down out of the canopy first (the control point sits below the start), then a swoop to the party.
+      const from = canopy("forage", 0.4), to = spot(k), ctrl = from.clone().setY(from.y - 2.6).lerp(to, 0.15);
+      scene.add(t);
+      await flight(t, null, null, 1700, 0, { curve:new THREE.QuadraticBezierCurve3(from, ctrl, to), color:PURPLE, spin:true, follow:false }); // the chapter shot already frames the tree and all three payees
+    }));
+    await wait(500);
+  }
+}
+
+// Turn to chapter i. Forward past a mechanic the viewer has not done runs it: animated for the next page, instant for a jump.
+async function goTo(i) {
+  i = Math.max(0, Math.min(CH.length - 1, i));
+  if (busy || i === ch) return;
+  if (s.step < NEED[i]) {
+    busy = true; quick = i > ch + 1; render();
+    while (s.step < NEED[i]) await advance();
+    quick = false; busy = false; phase = null;
+  }
+  show(i);
+}
+function show(i, first = false) {
+  ch = i; const c = CH[i];
+  const swap = () => { setStory(); story.classList.remove("out"); };
+  if (reduced || first) swap(); else { story.classList.add("out"); setTimeout(swap, 280); }
+  if (gl) {
+    problem.visible = i === 1; web.visible = i === 2; selfLoop.visible = i === 8;
+    dots.visible = pads.visible = i !== 1 && i !== 2;
+    for (const el of problemPills) el.classList.toggle("hide", i !== 1);
+    for (const w of webMarks) w.el.classList.toggle("hide", i !== 2);
+    selfPill.classList.toggle("hide", i !== 8);
+    if (i === 0) { if (first && !reduced) { camera.position.set(0.2, 6.5, 19); focus.set(0.2, 0.7, -0.5); } shot(SHOT.hero, first ? 7000 : 2400); }
+    else if (i === 1) shot(SHOT.problem, 2200);
+    else if (i === 2) shot(SHOT.big, 2400);
+    else if (i === 3) shot(SHOT.start, 1800);
+    else if (i === 4) shot(SHOT.fund, 1800);
+    else if (i === 5) shot(SHOT.callL, 1600);
+    else if (i === 6) shot(SHOT.sign, 1600);
+    else if (i === 7) shot(s.step === 3 ? SHOT.split : SHOT.settle, 1600);
+    else if (i === 8) shot(SHOT.forage, 2000);
+    else shot(SHOT.hero, 2600);
+  }
+  if (i === 8) rain();
+  render();
+}
+function replay() { stopWatch(); reset(); show(0); }
+
+// Watch the story: rest on each chapter, then turn the page, with flights at the slower pace. Any touch on the navigator stops it.
+// The settle chapter pulls the lever itself first, then rests on the split.
+async function watch() {
+  if (playing) { stopWatch(); return; }
+  if (ch === CH.length - 1) { reset(); show(0); }
+  playing = true; pace = reduced ? 1 : PLAY_PACE; render();
+  while (playing && ch < CH.length - 1) {
+    if (ch === 7 && s.step === 2) { busy = true; render(); await settle(); busy = false; phase = null; render(); }
+    await hold(reduced ? 1200 : CH[ch].hold);
+    if (!playing) break;
+    await goTo(ch + 1);
+  }
+  stopWatch();
+}
+function stopWatch() { playing = false; pace = BASE_PACE; render(); }
+
+// What the viewer can do in the scene right now.
 function action() {
-  if (!gl) return "Press the dark button below.";
-  if (s.step === 0) return "Click the vault to deposit $1.00.";
-  if (s.step === 1 && !s.searches) return "Drag an orb from Mia's agent and drop it on SearchCo.";
-  if (s.step === 1) return `Click Mia's agent for search ${s.searches + 1} of 5.`;
-  if (s.step === 2) return "Pull the lever on the vault toward you to settle.";
+  if (!gl) return "Press Next.";
+  if (ch === 4 && s.step === 0) return "Click the vault to deposit $1.00, or press Next.";
+  if (ch === 5 && s.step === 1) return s.searches ? `Click Mia's agent for call ${s.searches + 1} of 5.` : "Drag the search from Mia's agent and drop it on SearchCo.";
+  if (ch === 7 && s.step === 2) return "Pull the lever on the vault toward you to settle.";
   return "";
 }
 
-// Eyebrow, title, body, button label. Titles mark their italic word with *stars*.
-function caption() {
-  if (s.step === 0) return ["Fund the agent", "Mia's research agent needs *web search*.",
-    "It runs inside Scout, an app that found SearchCo's search tool on Forage. Each search costs $0.01. First, Mia funds her agent.",
-    "Next: deposit $1.00"];
-  if (s.step === 1 && !s.searches) return ["One balance", "Mia puts $1.00 in the Forage vault, *once*.",
-    "That one balance pays for any tool on Forage, and she can withdraw what she doesn't spend. Now her agent searches.",
-    "Next: search 1 of 5"];
-  if (s.step === 1) return ["Sign, don't pay", `Search ${s.searches} of 5. *No money has moved yet.*`,
-    `Instead of paying per search, Mia's agent signs a new running total: ${usd(s.total)} owed to SearchCo. SearchCo keeps only the latest signature, so older ones are worthless.`,
-    `Next: search ${s.searches + 1} of 5`];
-  if (s.step === 2) return ["Settle", "5 searches, *one signature* worth $0.05.",
-    "SearchCo cashes in the latest signature whenever it likes. One settlement from the vault pays all three parties at once.",
-    "Next: settle $0.05"];
-  return ["Three payees", "One settlement, *three payees*.",
-    "Scout didn't build search. It brought Mia, so it earns 5% of every call she makes through it, for as long as she stays.",
-    "Replay"];
+function setStory() {
+  const c = CH[ch];
+  $("capNum").textContent = c.step ?? ""; $("capNum").hidden = !c.step;
+  $("capEyebrow").textContent = c.step ? `Step ${c.step} of 5: ${c.eye}` : c.eye;
+  $("capTitle").innerHTML = em(text(c.title));
+  const body = $("capBody");
+  if (c.list) body.innerHTML = "<ul>" + c.list.map(l => `<li>${l}</li>`).join("") + "</ul>";
+  else body.textContent = text(c.body);
+  $("note").textContent = c.note || "";
+  $("cta").textContent = c.cta || ""; $("cta").hidden = !c.cta;
+  $("talk").hidden = ch !== CH.length - 1;
 }
 
-function setButtons() {
-  $("go").disabled = busy || playing;
-  $("play").disabled = busy || playing || s.step === 3;
-}
-
-// The vault stack and the ledger follow the state: pearls = balance in $0.05 pieces, cards = signatures so far.
+// The vault's coin row and the signpost's ledger follow the state: coins = balance in $0.20 pieces, cards = signatures so far.
 function render3d() {
   if (!gl) return;
-  const n = Math.round(s.bal.vault / COIN);
+  const n = Math.floor(s.bal.vault / COIN);
   coins.count = n;
-  // Four piles of five. Settlement takes the top pearl off the first pile.
-  for (let i = 0; i < n; i++) coins.setMatrixAt(i, _m.compose(_p.set(NODES.vault.pos[0] + (i % 2 ? 0.27 : -0.27), VAULT_TOP - 0.01 + Math.floor(i / 4) * 0.065, NODES.vault.pos[2] + (i % 4 < 2 ? -0.18 : 0.22)), _q, COIN_S));
+  // A row of five at the back of the safe's top. Settlement takes the last one away.
+  for (let i = 0; i < n; i++) coins.setMatrixAt(i, _m.compose(_p.set(NODES.vault.pos[0] - 0.4 + i * 0.2, VAULT_TOP - 0.01, NODES.vault.pos[2] - 0.22), _q, COIN_S));
   coins.instanceMatrix.needsUpdate = true;
   ledger.count = s.searches;
   for (let i = 0; i < s.searches; i++) {
-    ledger.setMatrixAt(i, _m.compose(_p.set(0, 0.0225 + i * 0.06, 0), _q.setFromAxisAngle(UP, (i - 2) * 0.08), _s));
-    ledger.setColorAt(i, _c.setHex(i === s.searches - 1 ? 0x5B4A80 : 0xffffff));
+    ledger.setMatrixAt(i, _m.compose(_p.set(0, 0.02 + i * 0.05, 0), _q.setFromAxisAngle(UP, (i - 2) * 0.08), _s));
+    ledger.setColorAt(i, _c.setHex(i === s.searches - 1 ? PURPLE : 0xffffff));
   }
   _q.identity();
   ledger.instanceMatrix.needsUpdate = true;
   if (ledger.instanceColor) ledger.instanceColor.needsUpdate = true;
 }
 
-function render() {
-  const [eye, t, b, btn] = caption();
-  const chapter = s.step === 1 && s.searches ? 2 : s.step === 1 ? 1 : s.step === 2 ? 3 : s.step === 3 ? 4 : 0;
-  $("capNum").textContent = ROMAN[chapter]; $("capEyebrow").textContent = eye;
-  $("capTitle").innerHTML = em(t); $("capBody").textContent = b; $("go").textContent = btn;
-  const act = $("act"); act.classList.remove("warn"); act.textContent = busy ? "" : action();
-  // Touch: block page scroll only on steps where a finger drags something in the scene.
-  if (gl) canvas.style.touchAction = (s.step === 1 && !s.searches) || s.step === 2 ? "none" : "pan-y";
-  setButtons();
+// The signpost board: what Mia has signed so far. Redrawn only when the numbers change.
+function drawBoard() {
+  if (!boardCtx) return;
+  const settled = s.step >= 3, key = `${s.searches}|${s.total}|${settled}`;
+  if (key === boardKey) return; boardKey = key;
+  const g = boardCtx, W2 = 512, H2 = 328;
+  g.fillStyle = "#FFFEFB"; g.fillRect(0, 0, W2, H2);
+  g.fillStyle = "#6B7280"; g.font = "500 26px 'Geist Mono', ui-monospace, monospace"; g.textAlign = "center";
+  g.fillText(settled ? "CASHED IN" : "SIGNED TO SEARCHCO", W2 / 2, 70);
+  g.fillStyle = "#111"; g.font = "700 96px Oxanium, Arimo, sans-serif";
+  g.fillText(usd(s.total), W2 / 2, 185);
+  g.fillStyle = settled ? "#0B5563" : "#6D28D9"; g.font = "500 26px 'Geist Mono', ui-monospace, monospace";
+  g.fillText(settled ? "PAID IN ONE SETTLEMENT" : s.searches ? `SIGNATURE #${s.searches} · NOTHING PAID` : "NO SIGNATURE YET", W2 / 2, 260);
+  boardTex.needsUpdate = true;
+}
 
-  $("steps").innerHTML = STEPS.map((name, i) => {
-    const cls = i < s.step ? "done" : i === s.step ? "on" : "";
-    return (i ? '<div class="line"></div>' : "") + `<div class="step ${cls}" title="${name}"><div class="dot"></div><span>${name}</span></div>`;
-  }).join("");
+function render() {
+  drawBoard();
+  const c = CH[ch];
+  if (!story.classList.contains("out")) { if (typeof c.body === "function") $("capBody").textContent = c.body(); if (typeof c.title === "function") $("capTitle").innerHTML = em(c.title()); }
+  const act = $("act"); act.classList.remove("warn"); act.textContent = busy ? "" : action();
+  // Touch: block page scroll only on chapters where a finger drags something in the scene.
+  if (gl) canvas.style.touchAction = target() === "mia" || target() === "lever" ? "none" : "pan-y";
+  $("prev").disabled = busy || ch === 0; $("next").disabled = busy || ch === CH.length - 1; $("cta").disabled = busy;
+  $("watch").textContent = playing ? "Stop" : "Watch the story";
+  $("watch").disabled = busy && !playing;
+  navEl.querySelectorAll("button").forEach((b, i) => { b.className = i < ch ? "done" : i === ch ? "on" : ""; b.setAttribute("aria-current", i === ch ? "step" : "false"); });
 
   for (const [k, n] of Object.entries(nodeEls)) {
     n.bal.textContent = usd(s.bal[k]);
@@ -840,24 +1216,43 @@ function render() {
   }
   render3d();
 
-  $("total").textContent = usd(s.total);
-  $("sigNo").textContent = s.searches > 1 ? `#${s.searches}, replaces #${s.searches - 1}` : s.searches ? "#1" : "none yet";
-  $("stamp").textContent = s.step === 3 ? "Cashed in by SearchCo. Settled." : "";
-
-  if (s.step === 3) {
+  const showSplit = ch === 7 && s.step === 3;
+  if (showSplit) {
     const p = split(s.total);
-    $("lgS").textContent = usd(p.supplier); $("lgF").textContent = usd(p.forage); $("lgA").textContent = usd(p.app);
-    $("split").classList.add("show");
+    $("lgS").textContent = usd(p.supplier); $("lgF").textContent = usd(p.forage); $("lgA").textContent = usd(p.app); $("lgV").textContent = usd(s.bal.vault);
   }
+  $("split").classList.toggle("show", showSplit);
 }
 
-$("go").addEventListener("click", next);
-$("play").addEventListener("click", async () => {
-  playing = true; setButtons();
-  while (s.step < 3) { await next(); await sleep(1600); }
-  playing = false; setButtons();
+// Navigator: one dot per chapter, keyboard arrows, wheel, swipe, prev and next.
+const navEl = $("nav");
+CH.forEach((c, i) => {
+  const b = document.createElement("button"); b.type = "button";
+  b.innerHTML = `<span>${c.label}</span><i class="d"></i>`; b.setAttribute("aria-label", `Chapter ${i + 1}: ${c.label}`);
+  b.addEventListener("click", () => { stopWatch(); goTo(i); b.blur(); });
+  navEl.appendChild(b);
 });
+$("prev").addEventListener("click", () => { stopWatch(); goTo(ch - 1); });
+$("next").addEventListener("click", () => { stopWatch(); goTo(ch + 1); });
+$("cta").addEventListener("click", () => { if (ch === 0) { stopWatch(); goTo(1); } else replay(); });
+$("watch").addEventListener("click", watch);
+addEventListener("keydown", e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (["ArrowRight", "ArrowDown", "PageDown"].includes(e.key)) { e.preventDefault(); stopWatch(); goTo(ch + 1); }
+  else if (["ArrowLeft", "ArrowUp", "PageUp"].includes(e.key)) { e.preventDefault(); stopWatch(); goTo(ch - 1); }
+  else if (e.key === "Home") { stopWatch(); goTo(0); }
+  else if (e.key === "End") { stopWatch(); goTo(CH.length - 1); }
+});
+let wheelAcc = 0, wheelAt = 0, wheelTurn = 0;
+addEventListener("wheel", e => {
+  const now = performance.now();
+  if (now - wheelAt > 300) wheelAcc = 0;
+  wheelAt = now; wheelAcc += e.deltaY;
+  if (now - wheelTurn > 900 && Math.abs(wheelAcc) > 60) { wheelTurn = now; stopWatch(); goTo(ch + Math.sign(wheelAcc)); wheelAcc = 0; }
+}, { passive:true });
+
 reset();
+show(0, true);
 </script>
 </body>
 </html>

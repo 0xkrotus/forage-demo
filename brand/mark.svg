@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke-linecap="round">
+  <!-- Forked root: one stem splits into three. Heavy branch 91% (ink), fine branches 4% (purple) and 5% (grey). -->
+  <path d="M50 94 V58 C50 40 60 28 76 16" stroke="#111111" stroke-width="13"/>
+  <path d="M50 66 C46 50 36 40 22 34" stroke="#6D28D9" stroke-width="5"/>
+  <path d="M50 60 C48 44 46 30 40 14" stroke="#4B5563" stroke-width="5"/>
+</svg>

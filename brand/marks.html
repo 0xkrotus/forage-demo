@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Forage mark concepts</title>
+<link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#111; --muted:#6B7280; --rule:#D1D5DB; --forage:#6D28D9; --supplier:#0B5563; --buyer:#C2410C; --app:#4B5563; }
+  body { margin:0; background:#fff; color:var(--ink); font:15px/1.5 Arimo, Helvetica, Arial, sans-serif; }
+  main { max-width:1240px; margin:0 auto; padding:36px 32px; }
+  h1 { font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:0 0 24px; border-bottom:2px solid var(--ink); padding-bottom:10px; }
+  .grid { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:28px; }
+  .card { border:1px solid var(--rule); border-radius:10px; padding:24px; }
+  .card h2 { margin:0; font-size:13px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .card p { margin:6px 0 18px; color:#374151; min-height:66px; }
+  .mark { display:flex; gap:18px; align-items:center; justify-content:center; height:170px; background:#F7F7F8; border-radius:8px; }
+  .mark.dark { background:#111; }
+  .lockup { display:flex; align-items:center; gap:12px; margin-top:16px; padding:18px; border-top:1px solid var(--rule); }
+  .word { font-weight:700; font-size:40px; letter-spacing:-1.5px; line-height:1; }
+  .row { display:flex; gap:14px; margin-top:12px; align-items:center; }
+  .tiny { font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Forage mark concepts · the wordmark stays as in the PDFs</h1>
+  <div class="grid">
+
+    <!-- A: Forked root. One stem splits into three: the thick branch is the 91%, the two fine ones are 4% and 5%. -->
+    <section class="card">
+      <h2>A · Forked root</h2>
+      <p>One stem splits into three. The heavy branch is the AI company's 91%, the two fine ones are Forage's 4% and the app's 5%. Reads as foraging too.</p>
+      <div class="mark">
+        <svg width="120" height="120" viewBox="0 0 100 100" fill="none" stroke-linecap="round">
+          <path d="M50 94 V58 C50 40 60 28 76 16" stroke="#111" stroke-width="13"/>
+          <path d="M50 66 C46 50 36 40 22 34" stroke="#6D28D9" stroke-width="5"/>
+          <path d="M50 60 C48 44 46 30 40 14" stroke="#4B5563" stroke-width="5"/>
+        </svg>
+        <svg width="56" height="56" viewBox="0 0 100 100" fill="none" stroke-linecap="round">
+          <path d="M50 94 V58 C50 40 60 28 76 16" stroke="#111" stroke-width="13"/>
+          <path d="M50 66 C46 50 36 40 22 34" stroke="#111" stroke-width="5"/>
+          <path d="M50 60 C48 44 46 30 40 14" stroke="#111" stroke-width="5"/>
+        </svg>
+      </div>
+      <div class="lockup">
+        <svg width="40" height="40" viewBox="0 0 100 100" fill="none" stroke-linecap="round"><path d="M50 94 V58 C50 40 60 28 76 16" stroke="#111" stroke-width="13"/><path d="M50 66 C46 50 36 40 22 34" stroke="#6D28D9" stroke-width="5"/><path d="M50 60 C48 44 46 30 40 14" stroke="#4B5563" stroke-width="5"/></svg>
+        <span class="word">FORAGE</span>
+      </div>
+    </section>
+
+    <!-- B: Split coin. A USDC coin cut into 91 / 4 / 5 by its own angles. -->
+    <section class="card">
+      <h2>B · Split coin</h2>
+      <p>A coin cut at its true angles: 327.6° for the AI company, 14.4° for Forage, 18° for the app. The payment and the split in one shape.</p>
+      <div class="mark">
+        <svg width="120" height="120" viewBox="-50 -50 100 100">
+          <!-- clockwise from the top: 91% = 327.6°, 4% = 14.4°, 5% = 18°, 2.5° gaps -->
+          <path d="M0 0 L0.96 -43.99 A44 44 0 1 1 -24.38 -36.63 Z" fill="#111"/>
+          <path d="M0 0 L-22.76 -37.66 A44 44 0 0 1 -14.51 -41.54 Z" fill="#6D28D9"/>
+          <path d="M0 0 L-12.68 -42.13 A44 44 0 0 1 -0.96 -43.99 Z" fill="#4B5563"/>
+          <circle r="14" fill="#fff"/>
+        </svg>
+        <svg width="56" height="56" viewBox="-50 -50 100 100">
+          <path d="M0 0 L0.96 -43.99 A44 44 0 1 1 -24.38 -36.63 Z" fill="#111"/>
+          <path d="M0 0 L-22.76 -37.66 A44 44 0 0 1 -14.51 -41.54 Z" fill="#111"/>
+          <path d="M0 0 L-12.68 -42.13 A44 44 0 0 1 -0.96 -43.99 Z" fill="#111"/>
+          <circle r="14" fill="#F7F7F8"/>
+        </svg>
+      </div>
+      <div class="lockup">
+        <svg width="40" height="40" viewBox="-50 -50 100 100"><path d="M0 0 L0.96 -43.99 A44 44 0 1 1 -24.38 -36.63 Z" fill="#111"/><path d="M0 0 L-22.76 -37.66 A44 44 0 0 1 -14.51 -41.54 Z" fill="#6D28D9"/><path d="M0 0 L-12.68 -42.13 A44 44 0 0 1 -0.96 -43.99 Z" fill="#4B5563"/><circle r="14" fill="#fff"/></svg>
+        <span class="word">FORAGE</span>
+      </div>
+    </section>
+
+    <!-- C: Fork F. The F of FORAGE drawn as a stem with two branches. -->
+    <section class="card">
+      <h2>C · Fork F</h2>
+      <p>The F of the wordmark built as a fork: the stem is the payment, its two arms branch off as Forage's and the app's cut. Works as a favicon.</p>
+      <div class="mark">
+        <svg width="120" height="120" viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M34 92 V30 C34 18 42 12 54 12 H80" stroke="#111" stroke-width="14"/>
+          <path d="M34 52 H58 C66 52 70 46 72 40" stroke="#6D28D9" stroke-width="7"/>
+          <path d="M34 70 H50" stroke="#4B5563" stroke-width="7"/>
+        </svg>
+        <svg width="56" height="56" viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M34 92 V30 C34 18 42 12 54 12 H80" stroke="#111" stroke-width="14"/>
+          <path d="M34 52 H58 C66 52 70 46 72 40" stroke="#111" stroke-width="7"/>
+          <path d="M34 70 H50" stroke="#111" stroke-width="7"/>
+        </svg>
+      </div>
+      <div class="lockup">
+        <svg width="40" height="40" viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M34 92 V30 C34 18 42 12 54 12 H80" stroke="#111" stroke-width="14"/><path d="M34 52 H58 C66 52 70 46 72 40" stroke="#6D28D9" stroke-width="7"/><path d="M34 70 H50" stroke="#4B5563" stroke-width="7"/></svg>
+        <span class="word">FORAGE</span>
+      </div>
+    </section>
+  </div>
+  <p class="tiny" style="margin-top:20px">Colours from the Forage PDFs: ink #111, $FORAGE purple #6D28D9, app grey #4B5563. Each mark shown in colour and one-colour at small size.</p>
+</main>
+</body>
+</html>
