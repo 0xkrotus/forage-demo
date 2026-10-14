@@ -170,6 +170,7 @@
     .lbl { padding:3px 8px; gap:0 6px; } .lbl b { font-size:10px; } .lbl .bal { font-size:10px; } .lbl .role { display:none; } .lbl .delta { font-size:10px; }
     .lbl .desc { display:none !important; }
     .tag3 { font-size:9px; padding:3px 7px; max-width:150px; } .tag3.sig .amt { font-size:16px; } .tag3.sig small { display:none; }
+    .story .install { display:none; }
     .mk { font-size:8px; gap:4px; } .mk .n { width:14px; height:14px; font-size:8px; }
   }
   /* The site below the story: it slides up over the fixed scene. */
@@ -196,7 +197,8 @@
   .tile.lane .eyebrow { color:var(--c); }
   .tile.lane h3 { font-size:24px; }
   .tile ul { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:10px; }
-  .tile li { display:flex; gap:10px; } .tile li::before { content:"\2014"; color:var(--c, var(--muted)); flex:0 0 auto; }
+  .tile li { position:relative; padding-left:22px; } .tile li::before { content:"\2014"; position:absolute; left:0; color:var(--c, var(--muted)); }
+  .tile .go { margin-top:auto; align-self:flex-start; }
   .tile.only { border-color:var(--forage); }
   .rows { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; }
   .rows li { display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
@@ -216,6 +218,29 @@
   .site footer a { color:var(--muted); }
   .site footer .fl { display:flex; flex-wrap:wrap; gap:8px 20px; }
   .trail { height:0; border-top:3px dotted #C9C5BC; max-width:1104px; margin:0 auto; }
+  /* Code blocks: the builder half of the page is mostly these. */
+  pre { margin:0; padding:16px 18px; background:#F6F4EF; border:1px solid var(--line); border-radius:12px; font:13px/1.55 var(--mono); color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; }
+  pre .c { color:var(--muted); } pre .todo { color:var(--buyer); }
+  code { font:13px/1.4 var(--mono); background:#F3F1EC; border-radius:4px; padding:1px 5px; overflow-wrap:anywhere; }
+  .dark pre { background:#1C1C1C; border-color:#333; color:#E8E4DC; } .dark code { background:#2A2A2A; color:#fff; }
+  .story .install { margin:14px 0 0; padding:12px 14px; font-size:12px; }
+  .story .install b { display:block; font:500 9px var(--mono); letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  .clients { display:flex; flex-direction:column; gap:10px; }
+  .clients details { background:#fff; border:1px solid var(--line); border-radius:12px; }
+  .clients details[open] { border-color:#C9C5BC; }
+  .clients summary { cursor:pointer; padding:14px 18px; font:600 15px var(--display); color:var(--ink); list-style:none; display:flex; justify-content:space-between; align-items:center; }
+  .clients summary::-webkit-details-marker { display:none; }
+  .clients summary::after { content:"+"; font:500 16px var(--mono); color:var(--muted); } .clients details[open] summary::after { content:"\2013"; }
+  .clients details > div { padding:0 18px 18px; display:flex; flex-direction:column; gap:12px; }
+  .steps { list-style:none; counter-reset:step; padding:0; margin:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap:18px; }
+  .steps li { counter-increment:step; border-left:2px solid var(--line); padding:2px 0 2px 18px; min-width:0; display:flex; flex-direction:column; gap:8px; }
+  .steps li::before { content:counter(step); font:600 15px/1 var(--mono); color:var(--forage); }
+  .steps strong { display:block; color:var(--ink); font-family:var(--display); font-size:18px; }
+  .defaults { width:100%; border-collapse:collapse; font-size:14px; }
+  .defaults th, .defaults td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .defaults th { font:500 10px var(--mono); letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  .defaults td:first-child { font-family:var(--mono); font-size:13px; color:var(--ink); white-space:nowrap; }
+  .intro { padding-bottom:40px; }
   @media (max-width:800px) { .sec { padding:72px 18px; gap:32px; } .sec.band > .in { padding:72px 18px; } .tile.lane { padding:22px; } .site footer .in { padding:22px 18px 36px; } }
   @media (prefers-reduced-motion:reduce) {
     .story, .split, .nav button .d, .lbl .delta { transition:none; }
@@ -228,11 +253,12 @@
 <header class="top">
   <a class="brand" href="#top" aria-label="Forage"><svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" aria-hidden="true"><path d="M50 94 V58 C50 40 60 28 76 16" stroke="#111" stroke-width="13"/><path d="M50 66 C46 50 36 40 22 34" stroke="#6D28D9" stroke-width="5"/><path d="M50 60 C48 44 46 30 40 14" stroke="#4B5563" stroke-width="5"/></svg>FORAGE</a>
   <nav class="links" aria-label="Site">
-    <a href="#top" data-sec="top">Story</a>
     <a href="#who" data-sec="who">Who it's for</a>
+    <a href="#install" data-sec="install">Install</a>
+    <a href="#story-intro" data-sec="story-intro">The story</a>
+    <a href="#status" data-sec="status">Status</a>
     <a href="#token" data-sec="token">$FORAGE</a>
     <a href="#field" data-sec="field">The field</a>
-    <a href="#stack" data-sec="stack">Stack</a>
   </nav>
   <div class="acts">
     <button class="btn ghost" id="watchTop" type="button">Watch the story</button>
@@ -254,8 +280,10 @@
     <div class="body" id="capBody"></div>
     <p class="act" id="act"></p>
     <p class="note" id="note"></p>
+    <pre class="install" id="heroInstall"><b>Install in Claude Code</b>claude mcp add forage -- npx -y forage</pre>
     <div class="controls">
       <button id="cta"></button>
+      <a class="btn" id="install-link" href="#install" hidden>Install</a>
       <a class="btn" id="talk" href="#contact" hidden>Talk to us</a>
       <button class="sm" id="prev">Prev</button>
       <button class="sm" id="next">Next</button>
@@ -280,11 +308,152 @@
     </div>
   </section>
 
-  <div class="hint" id="hint" aria-hidden="true">Scroll to walk the trail</div>
+  <div class="hint" id="hint" aria-hidden="true">Scroll</div>
 
-  <!-- One spacer per chapter; scrolling through them drives the scene. -->
-  <div class="track" id="track" aria-hidden="true">
+  <!-- The hero is chapter 0: one spacer, the scene looping behind the card. -->
+  <div class="track" id="hero" aria-hidden="true">
     <section class="ch" id="top" data-ch="0"></section>
+  </div>
+
+  <div class="site" id="site">
+    <section class="sec" id="who">
+      <div class="head">
+        <div class="eyebrow">Who it's for</div>
+        <h2>Three sides. <i>All three</i> get paid.</h2>
+        <p class="lead">Every settlement pays the AI company that served the call, the protocol, and the app that brought the buyer. Nobody signs up anywhere. Stage 1 ships the call itself; the split and the token follow.</p>
+      </div>
+      <div class="grid g3">
+        <div class="tile lane" style="--c:var(--buyer)">
+          <div class="eyebrow">For buyers &middot; one MCP server</div>
+          <h3>Every tool, one balance, one install.</h3>
+          <ul>
+            <li>One config block in Claude Code, Cursor or Codex. <code>search_tools</code> works before you fund anything.</li>
+            <li>No account anywhere. Pay per call, not per month, from a session key you cap: $0.10 a call, $5 a day by default.</li>
+            <li>Failed checks never sign a payment. Earn $FORAGE on every call you pay for, once the mint opens.</li>
+          </ul>
+          <a class="btn go" href="#install">Install</a>
+        </div>
+        <div class="tile lane" style="--c:var(--supplier)">
+          <div class="eyebrow">For AI companies &middot; list once</div>
+          <h3>Customers you never onboarded.</h3>
+          <ul>
+            <li>No signup, no card, no key. Answer an in-policy 402 and the catalog marks you payable.</li>
+            <li>Keep what you earn, in USDC, to your wallet. Your endpoint, your price, your brand, your ERC-8004 identity.</li>
+            <li>Apps are paid to bring you buyers. Buyers stake on you, ranking you first.</li>
+          </ul>
+          <a class="btn go" href="#suppliers">Get listed</a>
+        </div>
+        <div class="tile lane" style="--c:var(--app)">
+          <div class="eyebrow">For the apps that bring buyers &middot; get paid</div>
+          <h3>A builder code on every call you route.</h3>
+          <ul>
+            <li>Set <code>FORAGE_BUILDER_CODE</code> once. Every ledger row your users' calls write carries it, from day one.</li>
+            <li>A fee the user approves once and can revoke, paid at every settlement. Claimed from the treasury, no invoices.</li>
+            <li>Earn $FORAGE on the usage you route, on top of the builder fee.</li>
+          </ul>
+          <a class="btn go" href="#apps">Route calls</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="trail"></div>
+
+    <section class="sec" id="install">
+      <div class="head">
+        <div class="eyebrow" style="color:var(--buyer)">Install &middot; stage 1, for builders</div>
+        <h2>One config block. <i>Four</i> steps to a paid call.</h2>
+        <p class="lead">Add the server to your client, run setup, fund the key, call. <code>search_tools</code> and <code>forage_status</code> work before setup has run; only <code>call_tool</code> and withdraw need a balance.</p>
+      </div>
+      <ol class="steps">
+        <li><strong>Add the server</strong>Paste one block into your client. The package ships a seed index, so the first search answers with no network and no cache.</li>
+        <li><strong>Run setup</strong><code>npx forage setup</code> writes <code>~/.forage/key.json</code> and prints the funding address, the default caps and the next prompt.</li>
+        <li><strong>Fund the key</strong>Send USDC on Base to the address. ETH is optional; only withdraw needs gas. <code>forage_status</code> shows the balance when it lands.</li>
+        <li><strong>Call</strong><code>call_tool</code> validates your input locally, probes for the 402, checks the price against your caps, signs, and returns the result with what it cost.</li>
+      </ol>
+      <div class="clients">
+        <details open>
+          <summary>Claude Code</summary>
+          <div>
+            <pre>claude mcp add forage -- npx -y forage</pre>
+            <p class="fine">Or in <code>.mcp.json</code> at the project root:</p>
+            <pre>{ "mcpServers": { "forage": { "command": "npx", "args": ["-y", "forage"] } } }</pre>
+          </div>
+        </details>
+        <details>
+          <summary>Cursor</summary>
+          <div>
+            <p class="fine"><code>.cursor/mcp.json</code> in the project, or <code>~/.cursor/mcp.json</code> for every project:</p>
+            <pre>{ "mcpServers": { "forage": { "command": "npx", "args": ["-y", "forage"] } } }</pre>
+          </div>
+        </details>
+        <details>
+          <summary>Codex</summary>
+          <div>
+            <p class="fine"><code>~/.codex/config.toml</code>:</p>
+            <pre>[mcp_servers.forage]
+command = "npx"
+args = ["-y", "forage"]</pre>
+          </div>
+        </details>
+      </div>
+      <div class="grid g3">
+        <div class="tile">
+          <div class="eyebrow" style="color:var(--buyer)">Defaults, overridable in <code>~/.forage/config.json</code> or <code>FORAGE_*</code></div>
+          <table class="defaults">
+            <!-- TODO gate d3: caps follow the /autoplan gate answer. Recommended default shown. -->
+            <tr><td>cap_per_call</td><td>$0.10</td></tr>
+            <tr><td>cap_per_period</td><td>$5.00 / 24 h. The loss bound: the most a poisoned result can spend in a loop.</td></tr>
+            <tr><td>settlement_window</td><td>24 h per supplier</td></tr>
+            <tr><td>key file</td><td>~/.forage/key.json, a hot wallet bounded by the caps</td></tr>
+          </table>
+        </div>
+        <div class="tile" id="suppliers">
+          <div class="eyebrow" style="color:var(--supplier)">Suppliers &middot; get listed</div>
+          <p style="margin:0">The catalog is built from public feeds, refreshed daily. An entry is payable when its https endpoint answers an in-policy 402: x402, USDC, Base, no key. Forage records the payment, never your inputs, results or keys. Settled calls from distinct buyers rank first; self-listed rows never rank.</p>
+          <pre>{ "extra_entries": ["https://api.example.com/search"] }   <span class="c"># self-list in ~/.forage/config.json</span></pre>
+        </div>
+        <div class="tile" id="apps">
+          <div class="eyebrow" style="color:var(--app)">Apps and frameworks &middot; route calls</div>
+          <p style="margin:0">Ship the server to your users with a builder code set once. It is read at start and never a tool argument, so a prompt cannot change whose code a call carries. Attribution exists in stage 1; the fee arrives with stage 2 channels.</p>
+          <pre>FORAGE_BUILDER_CODE=scout npx forage</pre>
+        </div>
+      </div>
+      <p class="fine">No USDC on Base yet? Any exchange or on-ramp that sends USDC on Base works. Three clients share one <code>~/.forage</code>; a cross-process lock means two of them firing at once never sign past the period cap.</p>
+      <div class="grid g2">
+        <div class="tile">
+          <div class="eyebrow">Why an MCP server, not an SDK or a gateway</div>
+          <ul>
+            <li>It is where the buyer already is. Claude Code, Cursor, Codex and the agent frameworks all consume MCP servers as-is. One package, every client, no per-framework work, listed in the MCP registries for free.</li>
+            <li>It sits in the slot an API key fills today. The config block a developer pastes a Tavily or Exa key into takes a capped wallet instead, and the agent's tool-use loop does not change.</li>
+            <li>It runs on the buyer's machine. The session key, the caps and the ledger stay on disk. Forage never holds funds or keys; a hosted gateway would have to.</li>
+          </ul>
+        </div>
+        <div class="tile">
+          <div class="eyebrow">What it is not</div>
+          <ul>
+            <li>The moat. At least five live products ship a buyer-side MCP wrapper. MCP is distribution; the ledger, the builder code and $FORAGE are what the market runs on.</li>
+            <li>Only for coding tools. The keyless pitch is strongest for unattended agents in frameworks, where nobody is there to paste a key. Coding tools are the first install because they are free to list in.</li>
+            <li>Free of a hop. The agent calls Forage's tool, which calls the supplier. Catalog descriptions are labeled untrusted and truncated for that reason.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="trail"></div>
+
+    <section class="sec intro" id="story-intro">
+      <div class="head">
+        <div class="eyebrow">The story</div>
+        <h2>Five steps around the <i>tree</i>.</h2>
+        <p class="lead">Scroll to walk the trail, or watch it play in about 90 seconds. Steps 1 to 3 are stage 1 as it ships today; the signed running total, the split and $FORAGE are stages 2 to 4.</p>
+        <div class="controls"><button class="btn" id="watchIntro" type="button">Watch the story</button></div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- The story: one spacer per chapter; scrolling through them drives the scene. -->
+  <div class="track" id="track" aria-hidden="true">
     <section class="ch" data-ch="1"></section>
     <section class="ch" data-ch="2"></section>
     <section class="ch" data-ch="3"></section>
@@ -296,46 +465,48 @@
     <section class="ch" data-ch="9"></section>
   </div>
 
-  <div class="site" id="site">
+  <div class="site" id="site2">
+    <section class="sec band dark" id="status">
+      <div class="in">
+        <div class="head">
+          <div class="eyebrow">Stage 1 &middot; prove the call &middot; October 2026</div>
+          <h2>What ships now, and what the story <i style="color:#B794F6">promises</i>.</h2>
+          <p class="lead">The walkthrough above is the whole market. Stage 1 ships the call: one MCP server, the catalog, direct payment to keyless suppliers, a ledger you can replay against Base, a builder code on every row.</p>
+        </div>
+        <div class="grid g2">
+          <div class="tile">
+            <div class="eyebrow">A paid call, as the agent sees it</div>
+            <pre><span class="todo"># TODO run: pasted from a real session once the first release runs end to end; nothing here is typed by hand.</span>
+$ npx forage setup
+key      ~/.forage/key.json (0600)
+address  0x&hellip;
+caps     $0.10 per call, $5.00 per rolling 24 hours
 
-    <section class="sec" id="who">
-      <div class="head">
-        <div class="eyebrow">Who it's for</div>
-        <h2>Three sides. <i>All three</i> get paid.</h2>
-        <p class="lead">Every settlement pays the AI company that served the call, the protocol, and the app that brought the buyer. Nobody signs up anywhere.</p>
-      </div>
-      <div class="grid g3">
-        <div class="tile lane" style="--c:var(--supplier)">
-          <div class="eyebrow">For AI companies &middot; list once</div>
-          <h3>Customers you never onboarded.</h3>
-          <ul>
-            <li>No signup, no card, no key. Install the middleware and your first settled call lists you.</li>
-            <li>Keep what you earn, in USDC, to your wallet. Your endpoint, your brand, your ERC-8004 identity.</li>
-            <li>Apps are paid to bring you buyers. Buyers stake on you, ranking you first.</li>
-          </ul>
+&gt; call_tool { "entry_id": "&hellip;", "input": { &hellip; } }
+{ "result": { &hellip; },
+  "paid": { "price": "0.0100", "nonce": "0x&hellip;", "supplier": "&hellip;", "pay_to": "0x&hellip;",
+            "builder_code": "direct", "settlement": "pending" } }</pre>
+          </div>
+          <div class="tile">
+            <div class="eyebrow">Live in stage 1</div>
+            <ul class="rows">
+              <li><span><b>The MCP server</b> for Claude Code, Cursor and Codex</span><span>search_tools, call_tool, forage_status</span></li>
+              <li><span><b>The catalog</b> from public feeds</span><span>daily refresh, probed, signed index</span></li>
+              <li><span><b>Direct x402 payment</b> to keyless suppliers</span><span>USDC on Base, capped key</span></li>
+              <li><span><b>The ledger</b> and its replay check</span><span>three row types, by nonce</span></li>
+              <li><span><b>The builder code</b> on every row</span><span>attribution, no fee yet</span></li>
+            </ul>
+            <div class="eyebrow" style="margin-top:10px">Not yet</div>
+            <ul class="rows">
+              <li><span><b>One balance</b> in a vault, the signed running total, the fee split</span><span>stage 2</span></li>
+              <li><span><b>$FORAGE</b>, the weekly mint, staking</span><span>stages 3 and 4, proposed</span></li>
+            </ul>
+          </div>
         </div>
-        <div class="tile lane" style="--c:var(--buyer)">
-          <div class="eyebrow">For buyers &middot; one balance</div>
-          <h3>Every tool, one balance, one MCP server.</h3>
-          <ul>
-            <li>Fund from any wallet or on-ramp. Nothing changes in your tools.</li>
-            <li>No account anywhere. Pay per call, not per month, at prices the supplier's saved costs allow.</li>
-            <li>Session keys and spend caps, set locally. Earn $FORAGE on every call you pay for.</li>
-          </ul>
-        </div>
-        <div class="tile lane" style="--c:var(--app)">
-          <div class="eyebrow">For the apps that bring buyers &middot; get paid</div>
-          <h3>A builder code on every call you route.</h3>
-          <ul>
-            <li>A fee the user approves once and can revoke, paid at every settlement.</li>
-            <li>Claimed from the treasury, no invoices. A public scoreboard of who brings paid volume.</li>
-            <li>Earn $FORAGE on the usage you route, on top of the builder fee.</li>
-          </ul>
-        </div>
+        <!-- TODO gate uc2 and d2: the two sentences below follow the /autoplan gate answers. Recommended defaults shown. -->
+        <p class="fine" style="color:#A5A09A">Stage 1 rows are raw usage; whether they count toward the proposed stage 2 credit is decided by a published wash filter before the first row is written. Each install posts its signed payment rows to a Forage intake that runs the same replay check; paid history is public by session key address, and posting has an off switch.</p>
       </div>
     </section>
-
-    <div class="trail"></div>
 
     <section class="sec" id="token">
       <div class="head">
@@ -490,7 +661,7 @@ function split(total) {
 // Four decimals for anything under ten cents or not a whole cent, so a $0.0030 call never shows as $0.00.
 const usd = u => "$" + (u / 1e6).toFixed(u % 10000 || (u > 0 && u < 100000) ? 4 : 2);
 const $ = id => document.getElementById(id);
-const BASE_PACE = 1.6, PLAY_PACE = 2.3; // every flight, camera move and pause is stretched by pace
+const BASE_PACE = 1.6, PLAY_PACE = 2.3, LOOP_PACE = 2.0; // every flight, camera move and pause is stretched by pace
 let pace = BASE_PACE; // BASE_PACE when the viewer drives, PLAY_PACE during Watch the story
 // Chase camera: while something flies, the camera closes in on it; after it lands the chapter shot returns.
 let chase = null, lastShot = null;
@@ -507,8 +678,8 @@ const text = t => typeof t === "function" ? t() : t;
 
 // The chapters. step is the station number on the trail. hold is how long Watch the story rests on one (real ms, not paced).
 const CH = [
-  { label:"Forage",  eye:"Forage",             title:"The *open* market for AI tools.",
-    body:"An agent buys any tool from one balance. Every settlement pays the AI company, Forage, and the app that brought the buyer. Five steps around the tree.", cta:"See how it works", hold:5000 },
+  { label:"Forage",  eye:"The open market for AI tools", title:"Any tool. *One* balance. Every side paid.",
+    body:"An agent finds a tool and pays per call in USDC on Base. Every settlement pays the AI company, Forage, and the app that brought the buyer. Nobody signs up anywhere.", cta:"Watch the story", hold:5000 },
   { label:"Problem", eye:"The problem",        title:"Every tool is a *dead end*.",
     body:"An agent that needs search, email and maps today needs three signups, three API keys and three monthly plans. The app that brought the user earns nothing.", hold:6500 },
   { label:"Picture", eye:"The bigger picture", title:"One trail *settles* them all.",
@@ -825,7 +996,7 @@ if (gl) {
   const antT = Array.from({ length:ANTS }, (_, i) => i / ANTS), aS = new THREE.Vector3(); let antA = 0;
   scene.add(ants);
   antsTick = dt => {
-    const want = (ch === 0 || ch === CH.length - 1) && !busy && dots.visible ? 1 : 0;
+    const want = (ch === 0 || ch === CH.length - 1) && !busy && !looping && dots.visible ? 1 : 0;
     antA += (want - antA) * (1 - Math.exp(-dt * 3));
     for (let i = 0; i < ANTS; i++) {
       if (!reduced) antT[i] = (antT[i] + dt * 0.03) % 1;
@@ -1169,7 +1340,7 @@ function flight(mesh, A, B, ms, hop, o = {}) {
     scene.add(trail);
   }
   // Close-up of the whole move: aim between where it starts and where it lands, near enough that both fill the frame.
-  if (o.follow !== false && gl && !reduced && !quick && (!chase || chase.end)) {
+  if (o.follow !== false && gl && !reduced && !quick && !looping && (!chase || chase.end)) {
     const a = curve.getPoint(0), b = curve.getPoint(1), mid = a.clone().lerp(b, 0.5), span = Math.max(1.2, a.distanceTo(b));
     chase = { mesh, end:0, mid, cam:mid.clone().add(_v.set(0, 0.32 * span + 0.9, 0.62 * span + 1.7).multiplyScalar(small ? 1.6 : 1)) }; // a phone's narrow view needs the close-up further back
   }
@@ -1191,7 +1362,7 @@ function shot(sh) { lastShot = sh; cam.amp = sh[2]; } // the rail owns the camer
 // Which trail segments are finished and which one is live, from the state plus what the busy step is doing.
 function routeState() {
   const base = s.step === 0 ? [] : s.step === 1 ? (s.searches ? [1, 2, 3] : [1]) : s.step === 2 ? [1, 2, 3] : [1, 2, 3, 4, 5];
-  const on = busy && phase ? { fund:1, call:2, sign:3, settle:4, split:5 }[phase] : s.step === 0 ? 1 : s.step === 1 ? 2 : s.step === 2 ? 4 : 0;
+  const on = (busy || looping) && phase ? { fund:1, call:2, sign:3, settle:4, split:5 }[phase] : s.step === 0 ? 1 : s.step === 1 ? 2 : s.step === 2 ? 4 : 0;
   return { done:base.filter(n => n !== on), on };
 }
 
@@ -1210,7 +1381,7 @@ function clearSigs() { if (sig.cur) kill(sig.cur); for (const f of sig.fading) k
 
 // What the viewer should touch now, in this chapter. Nothing pulses while things are flying or the story is playing itself.
 function target() {
-  if (!gl || !s || busy || playing || drag?.kind === "coin") return drag?.kind === "lever" ? "lever" : null;
+  if (!gl || !s || busy || playing || looping || drag?.kind === "coin") return drag?.kind === "lever" ? "lever" : null;
   if (ch === 4 && s.step === 0) return "vault";
   if (ch === 5 && s.step === 1) return "mia";
   if (ch === 7 && s.step === 2) return "lever";
@@ -1220,7 +1391,7 @@ const pulseMesh = k => !k ? null : k === "lever" ? leverGrip : nodes[k].userData
 function glow(k, hex, i = 1) { pulseMesh(k)?.traverse(o => { if (o.isMesh && o.material.emissive) { o.material.emissive.setHex(hex); o.material.emissiveIntensity = o.material.map ? i * 0.35 : i; } }); }
 function nudge(text) { const a = $("act"); a.textContent = text; a.classList.add("warn"); }
 
-let s, busy = false, playing = false;
+let s, busy = false, playing = false, looping = false, loopRun = null;
 function reset() {
   s = { step:0, searches:0, total:0, bal:{ mia:DEPOSIT, scout:0, searchco:0, vault:0, forage:0 }, delta:{} };
   leverTo = 0; doorTo = 0; phase = null;
@@ -1366,10 +1537,32 @@ async function rain() {
   }
 }
 
+// The hero loop: on chapter 0 with a fresh state the demo plays itself (fund, five calls, settle), rests, resets, repeats.
+// No chase camera and nothing to click; it is a moving illustration. Leaving the hero fast-forwards the current pass and resets.
+async function loop() {
+  while (looping && ch === 0) {
+    await advance();
+    if (s.step === 3) { await hold(2600); if (!looping) break; reset(); await hold(900); }
+  }
+}
+function startLoop() {
+  if (looping || !gl || reduced || playing || s.step !== 0 || s.searches) return;
+  looping = true; pace = LOOP_PACE; render(); loopRun = loop();
+}
+async function stopLoop() {
+  if (!looping) return;
+  looping = false; quick = true;
+  for (const f of flights.splice(0)) { if (f.trail) { scene.remove(f.trail); for (const t of f.trail.children) { t.geometry.dispose(); t.material.dispose(); } } if (!f.keep) kill(f.mesh); f.res(); }
+  chase = null;
+  await loopRun; loopRun = null;
+  quick = false; pace = BASE_PACE; reset();
+}
+
 // Turn to chapter i. Forward past a mechanic the viewer has not done runs it: animated for the next page, instant for a jump.
 async function goTo(i) {
   i = Math.max(0, Math.min(CH.length - 1, i));
   if (busy || i === ch) return;
+  if (looping) await stopLoop();
   if (s.step < NEED[i]) {
     busy = true; quick = i > ch + 1; render();
     while (s.step < NEED[i]) await advance();
@@ -1387,7 +1580,7 @@ function show(i, first = false) {
     for (const el of problemPills) el.classList.toggle("hide", i !== 1);
     for (const w of webMarks) w.el.classList.toggle("hide", i !== 2);
     selfPill.classList.toggle("hide", i !== 8);
-    if (i === 0) { if (first && !reduced) { camera.position.set(0.2, 7.5, 22); focus.set(0.2, 0.7, -0.5); } shot(SHOT.hero); }
+    if (i === 0) { if (first && !reduced) { camera.position.set(0.2, 7.5, 22); focus.set(0.2, 0.7, -0.5); } shot(SHOT.hero); setTimeout(() => { if (ch === 0 && !siteMode) startLoop(); }, first ? 1600 : 400); }
     else if (i === 1) shot(SHOT.problem, 2200);
     else if (i === 2) shot(SHOT.big, 2400);
     else if (i === 3) shot(SHOT.start, 1800);
@@ -1401,12 +1594,13 @@ function show(i, first = false) {
   if (i === 8) rain();
   render();
 }
-function replay() { stopWatch(); reset(); show(0); turn(0); }
+function replay() { stopWatch(); reset(); show(1); turn(1); }
 
 // Watch the story: rest on each chapter, then turn the page, with flights at the slower pace. Any touch on the navigator stops it.
 // The settle chapter pulls the lever itself first, then rests on the split.
 async function watch() {
   if (playing) { stopWatch(); return; }
+  if (looping) await stopLoop();
   if (ch === CH.length - 1) { reset(); show(0); turn(0); }
   playing = true; pace = reduced ? 1 : PLAY_PACE; render();
   while (playing && ch < CH.length - 1) {
@@ -1439,6 +1633,8 @@ function setStory() {
   $("note").textContent = c.note || "";
   $("cta").textContent = c.cta || ""; $("cta").hidden = !c.cta;
   $("talk").hidden = ch !== CH.length - 1;
+  $("heroInstall").hidden = ch !== 0; $("install-link").hidden = ch !== 0;
+  $("prev").hidden = ch === 0; $("next").hidden = ch === 0; $("watch").hidden = ch === 0; navEl.classList.toggle("hide", ch === 0);
 }
 
 // The vault's coin row and the signpost's ledger follow the state: coins = balance in $0.20 pieces, cards = signatures so far.
@@ -1507,8 +1703,8 @@ function render() {
 // The scroll track: one spacer per chapter. The spacer in the middle of the window is the chapter the scene shows.
 // Buttons, keys and the navigator scroll the track; the observer below turns the page. A viewer who scrolls past
 // several chapters at once is caught up instantly (goTo's quick mode), then shown the chapter they landed on.
-const secs = [...document.querySelectorAll("#track .ch")];
-const site = $("site"), hint = $("hint");
+const secs = [...document.querySelectorAll(".track .ch")];
+const windows = [$("hero"), $("track")], hint = $("hint");
 function turn(i) {
   i = Math.max(0, Math.min(CH.length - 1, i));
   secs[i].scrollIntoView({ behavior:reduced ? "auto" : "smooth", block:"start" });
@@ -1527,6 +1723,7 @@ setInterval(sync, 200);
 
 // Site mode: once the site below has covered the stage, the scene pauses and its cards hide; scrolling back up resumes.
 let siteMode = false;
+const secLinks = [...document.querySelectorAll(".top .links a[data-sec]")];
 function progress() {
   const mid = innerHeight / 2;
   for (let i = 0; i < secs.length; i++) {
@@ -1537,13 +1734,14 @@ function progress() {
 }
 function checkSite() {
   prog = progress();
-  const top = site.getBoundingClientRect().top;
-  const on = top < innerHeight * 0.35;
-  if (on !== siteMode) { siteMode = on; document.body.classList.toggle("site", on); visible = !on; on ? stop() : start(); }
+  const mid = innerHeight / 2;
+  const on = !windows.some(w => { const r = w.getBoundingClientRect(); return r.top < mid && r.bottom > mid; });
+  if (on !== siteMode) { siteMode = on; document.body.classList.toggle("site", on); visible = !on; on ? stop() : start(); if (!on && ch === 0) setTimeout(() => { if (ch === 0 && !siteMode) startLoop(); }, 400); }
   // Header link for the section in view.
-  let cur = "top";
-  for (const a of document.querySelectorAll(".top .links a")) { const t = document.getElementById(a.dataset.sec); if (t && t.getBoundingClientRect().top <= innerHeight * 0.4) cur = a.dataset.sec; }
-  for (const a of document.querySelectorAll(".top .links a")) a.classList.toggle("on", a.dataset.sec === cur);
+  let cur = "";
+  for (const a of secLinks) { const t = document.getElementById(a.dataset.sec); if (t && t.getBoundingClientRect().top <= innerHeight * 0.4) cur = a.dataset.sec; }
+  if (!siteMode && ch > 0) cur = "story-intro";
+  for (const a of secLinks) a.classList.toggle("on", a.dataset.sec === cur);
   hint.classList.toggle("off", scrollY > innerHeight * 0.25);
 }
 addEventListener("scroll", checkSite, { passive:true }); addEventListener("resize", checkSite);
@@ -1557,10 +1755,12 @@ CH.forEach((c, i) => {
 });
 $("prev").addEventListener("click", () => { stopWatch(); turn(ch - 1); });
 $("next").addEventListener("click", () => { stopWatch(); turn(ch + 1); });
-$("cta").addEventListener("click", () => { if (ch === 0) { stopWatch(); turn(1); } else replay(); });
+$("cta").addEventListener("click", async () => { if (ch === 0) { stopWatch(); await stopLoop(); turn(1); setTimeout(watch, 700); } else replay(); });
 $("watch").addEventListener("click", watch);
-$("watchTop").addEventListener("click", () => { if (siteMode || ch === CH.length - 1) { reset(); show(0); turn(0); setTimeout(watch, 700); } else watch(); });
-$("replayBottom").addEventListener("click", () => { replay(); });
+const fromTop = async () => { stopWatch(); await stopLoop(); reset(); turn(1); setTimeout(watch, 700); };
+$("watchTop").addEventListener("click", fromTop);
+$("watchIntro").addEventListener("click", fromTop);
+$("replayBottom").addEventListener("click", async () => { await stopLoop(); replay(); });
 addEventListener("keydown", e => {
   if (e.metaKey || e.ctrlKey || e.altKey || siteMode) return;
   if (["ArrowRight", "PageDown"].includes(e.key)) { e.preventDefault(); stopWatch(); turn(ch + 1); }

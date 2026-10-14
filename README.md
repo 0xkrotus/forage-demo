@@ -1,7 +1,8 @@
 # Forage site
 
-The investor-facing site for Forage, *the open market for AI tools*. One HTML file, Three.js, no build step, nothing
-loaded from a CDN. The 3D world is the product story; the rest of the site sits below it.
+The one site for Forage, *the open market for AI tools*, for investors and builders alike. One HTML file, Three.js, no
+build step, nothing loaded from a CDN. The hero is the 3D market playing itself behind an install command; the ten-chapter
+story is a section further down; the builder sections (install, suppliers, apps, status) sit between and after it.
 
 Live: https://forage-demo.vercel.app · Code: https://github.com/0xkrotus/forage-demo (every push to `main` deploys).
 
@@ -54,16 +55,17 @@ Read this once before touching `index.html`; it is the mental model.
 
 ```
 z-index 6   <header class="top">          fixed. Brand, section links, Watch the story, Talk to us.
-z-index 2-3 #story, #nav, #split, #hint    fixed. The chapter card (left), the chapter dots (right), the split bar, the scroll hint.
-z-index 1   #track                         in flow, transparent, pointer-events:none. Ten empty spacers, one per chapter.
+z-index 2-3 #story, #nav, #split, #hint    fixed. The chapter card (left; on the hero it carries the install block), the dots, the split bar, the hint.
+z-index 1   #hero, #track                  in flow, transparent, pointer-events:none. One spacer for the hero (chapter 0), nine for the story (chapters 1 to 9).
 z-index 0   #map (canvas + #labels)        fixed. The 3D stage and the HTML pills that float over it.
-z-index 4   #site                          in flow, solid background. Who it's for, $FORAGE, The field, Stack, Talk to us, footer.
+z-index 4   #site, #site2                  in flow, solid background. Who it's for, Install, The story intro / Status, $FORAGE, The field, Stack, Talk to us, footer.
 ```
 
-The page scrolls normally. While you are inside `#track`, the stage shows through the transparent spacers. When
-`#site` reaches 35% of the window height, `body.site` is set: the stage, the card, the dots and the hint fade out and
-the render loop stops (`checkSite()`). Scroll back up and it all resumes. Clicks and drags go through the spacers to
-the canvas, so every mechanic in the scene still works.
+The page scrolls normally. While the middle of the window is inside `#hero` or `#track`, the stage shows through the
+transparent spacers; anywhere else `body.site` is set, the stage, card, dots and hint fade out and the render loop stops
+(`checkSite()`). On the hero with a fresh state the demo plays itself (`loop()`: fund, five calls, settle, rest, reset)
+with no chase camera and nothing to click; leaving the hero fast-forwards the pass and resets (`stopLoop()`), so the
+story always starts clean. Clicks and drags go through the spacers to the canvas, so every mechanic in the scene still works.
 
 ### 3.2 Scroll → chapter
 
@@ -227,6 +229,7 @@ a screenshot of each, and prints any console error or warning. It is how every c
 npm i playwright@1.47.2            # once, anywhere; the script uses the Chromium it ships with
 python3 -m http.server 8765 &      # the site
 node tools/shoot.mjs ./shots       # screenshots land in ./shots
+CHANNEL=chrome node tools/shoot.mjs ./shots   # use the installed Google Chrome instead of Playwright's own build
 ```
 
 Software WebGL runs at a few frames a second, so a screenshot taken mid-glide shows the camera on its way, not where
@@ -252,6 +255,8 @@ Still open, in order:
 2. **Fast scrolling past Call.** One scroll past Call before the viewer has made the calls plays all five at full
    speed (about 29 s) while the page has moved on. `goTo` animates any jump of one chapter; a scroll jump should catch
    up instantly (`quick`) like a jump of several.
+2b. **Real output in the Status band.** The paid-call block is a `TODO run:` placeholder until the package runs end to
+   end; paste from a real session, never type it. Four lines carry `TODO gate:` for the open /autoplan decisions.
 3. **The mark itself.** The wordmark is outlined, but the forked root is still a first sketch.
 4. **A live-market mode after the story.** The ants are the seed of it: many agents, many calls, a ticker of
    settlements across the real catalog once there is one. Wait for the catalog; an invented ticker breaks the
