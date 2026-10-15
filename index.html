@@ -827,8 +827,9 @@ if (gl) {
   // Studio: a neutral room for reflections and nothing else. The ground fogs into the page colour, so the world has no horizon.
   { const pm = new THREE.PMREMGenerator(gl); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose(); scene.environmentIntensity = 0.4; }
 
-  // Ground: an infinite cyclorama in the page colour, and a large soft stage disc the whole trail stands on.
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), matte(BG, { roughness:1, metalness:0 }));
+  // Ground: a cyclorama in the page colour, and a large soft stage disc the whole trail stands on.
+  // 400 units is past the fog end (70) so it still reads as infinite; the 4000-unit plane flickered on Apple GPUs (interpolation across one huge triangle).
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), matte(BG, { roughness:1, metalness:0 }));
   ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; ground.material.envMapIntensity = 0; scene.add(ground);
   // The stage is a soft pool of slightly warmer ground that fades out, so nothing draws a horizon.
   const sc2 = document.createElement("canvas"); sc2.width = sc2.height = 1024; const sg = sc2.getContext("2d");
