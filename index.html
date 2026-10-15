@@ -664,7 +664,7 @@ const $ = id => document.getElementById(id);
 const BASE_PACE = 1.6, PLAY_PACE = 2.3, LOOP_PACE = 2.0; // every flight, camera move and pause is stretched by pace
 let pace = BASE_PACE; // BASE_PACE when the viewer drives, PLAY_PACE during Watch the story
 // Chase camera: while something flies, the camera closes in on it; after it lands the chapter shot returns.
-let chase = null, lastShot = null;
+let lastShot = null;
 let quick = false; // catching up state for a chapter the viewer jumped to: no flights, no waits
 const sleep = ms => new Promise(r => setTimeout(r, ms * pace));
 const hold = ms => new Promise(r => setTimeout(r, ms));
@@ -755,7 +755,7 @@ const SHOT = {
   big:     [[-1.4, 16.0, 8.5], [-1.4, 0, -0.5], 0.1, 1.6],
   start:   [[-6.5, 2.6, 6.4],  [-6.9, 0.9, -0.4], 0.05],
   fund:    [[-4.7, 3.2, 6.8],  [-5.1, 0.8, -0.4], 0.05],
-  callL:   [[-2.2, 5.0, 12.6], [-2.8, 1.0, -0.6], 0.05],
+  callL:   [[-2.8, 5.6, 16.4], [-2.8, 1.0, -0.6], 0.05],
   callR:   [[-1.6, 5.0, 12.6], [-2.2, 1.0, -0.6], 0.05],
   sign:    [[4.8, 2.9, 6.8],   [4.5, 1.0, 0.3], 0.05],
   settle:  [[-2.4, 4.0, 9.4],  [-2.4, 0.9, 0.2], 0.05],
@@ -1162,7 +1162,7 @@ if (gl) {
         else {
           if (moved > 5) nudge("Almost. Drop the search on SearchCo, the server rack.");
           else nudge("Drag it: hold Mia's agent, move right to SearchCo, let go.");
-          flight(d.mesh, p.clone(), spot("mia"), 420, 0.3, { follow:false });
+          flight(d.mesh, p.clone(), spot("mia"), 420, 0.3);
         }
       } else if (leverT > 0.5 || moved < 6) { leverTo = 1; userAct(); }
       else nudge("Pull the lever further toward you.");
@@ -1205,7 +1205,7 @@ function frame() {
       const a = Math.floor(ease(Math.min(1, Math.max(0, k - 0.3))) * TUB) * 48, b = Math.floor(e * TUB) * 48;
       for (const t of f.trail.children) t.geometry.setDrawRange(a, Math.max(0, b - a));
     }
-    if (k >= 1 && !f.landed) { f.landed = true; if (chase && chase.mesh === f.mesh) chase.end = now; if (f.flat) f.mesh.rotation.set(0, 0, 0); if (!f.keep) kill(f.mesh); f.res(); }
+    if (k >= 1 && !f.landed) { f.landed = true; if (f.flat) f.mesh.rotation.set(0, 0, 0); if (!f.keep) kill(f.mesh); f.res(); }
     if (k >= (f.trail ? 1.3 : 1)) {
       if (f.trail) { scene.remove(f.trail); for (const t of f.trail.children) { t.geometry.dispose(); t.material.dispose(); } }
       flights.splice(i, 1);
@@ -1255,15 +1255,8 @@ function frame() {
   leverArm.rotation.x = -0.4 + leverT * 1.5;
   doorT += (doorTo - doorT) * Math.min(1, dt * (reduced ? 60 : 2.5));
   vaultDoor.rotation.y = -DOOR_OPEN * doorT * doorT * (3 - 2 * doorT);
-  // Cinematic camera: an eased dolly to the chapter's shot, then a slow drift around it. The user's own drag overrides both.
-  // Hold on a landed thing for a moment, then hand back to the chapter shot; a new flight in that window keeps the chase going.
-  if (chase && chase.end && now - chase.end > 900 * pace) { chase = null; if (lastShot) shot(lastShot, 1500); }
-  if (chase && !cam.user) {
-    // Glide to the close-up, and let the aim lean toward the moving thing so the eye follows it.
-    camera.position.lerp(chase.cam, 1 - Math.exp(-dt * 3));
-    _p.copy(chase.mid).lerp(chase.mesh.position, 0.45); focus.lerp(_p, 1 - Math.exp(-dt * 5));
-    cam.to = null; cam.base = null;
-  } else if (!cam.user) {
+  // The camera walks the rail and never chases a flight: each chapter holds one framed part of the scene, and the action happens inside it.
+  if (!cam.user) {
     // Walk the rail: the camera eases toward the scroll position, with a slow breath around it when the viewer rests.
     railT += (prog - railT) * (reduced ? 1 : 1 - Math.exp(-dtw * 2.2));
     const u = Math.max(0, Math.min(1, railT / (CH.length - 1)));
@@ -1339,11 +1332,6 @@ function flight(mesh, A, B, ms, hop, o = {}) {
     trail = new THREE.Group();
     for (const [r, op] of [[0.035, 0.95], [0.12, 0.22]]) trail.add(new THREE.Mesh(new THREE.TubeGeometry(curve, TUB, r, 8, false), new THREE.MeshBasicMaterial({ color:o.color, transparent:true, opacity:op, depthWrite:false })));
     scene.add(trail);
-  }
-  // Close-up of the whole move: aim between where it starts and where it lands, near enough that both fill the frame.
-  if (o.follow !== false && gl && !reduced && !quick && !looping && (!chase || chase.end)) {
-    const a = curve.getPoint(0), b = curve.getPoint(1), mid = a.clone().lerp(b, 0.5), span = Math.max(1.2, a.distanceTo(b));
-    chase = { mesh, end:0, mid, cam:mid.clone().add(_v.set(0, 0.32 * span + 0.9, 0.62 * span + 1.7).multiplyScalar(small ? 1.6 : 1)) }; // a phone's narrow view needs the close-up further back
   }
   return new Promise(res => flights.push({ mesh, curve, trail, t0:performance.now(), ms, res, keep:!!o.keep, spin:!!o.spin, flat:!!o.flat, ease:o.ease, landed:false }));
 }
@@ -1449,7 +1437,7 @@ function flurry(fell, k) {
     const m = new THREE.Mesh(leaves.geometry, leaves.material.clone()); m.material.color.setHex(TINT[k]); m.castShadow = true;
     m.scale.copy(LEAF_S); m.quaternion.copy(l.q); scene.add(m); padCoins.push(m);
     const a = rnd() * 6.283, d = 0.55 + rnd() * 0.5;
-    flight(m, l.pos.clone(), PADS[k].clone().add(_v.set(Math.cos(a) * d, 0.03, Math.sin(a) * d)), 900 + rnd() * 500, 0.2, { spin:true, keep:true, flat:true, follow:false });
+    flight(m, l.pos.clone(), PADS[k].clone().add(_v.set(Math.cos(a) * d, 0.03, Math.sin(a) * d)), 900 + rnd() * 500, 0.2, { spin:true, keep:true, flat:true });
   }
 }
 // A coin drops from a branch tip onto the pad below it, bounces once and settles. The curve has three equal legs
@@ -1468,12 +1456,13 @@ async function settle() {
     await Promise.all([0, 1, 2, 3].map(async i => {
       await wait(i * 150);
       const c = i ? bigCoin(null, 0.6) : lead; scene.add(c);
-      await flight(c, mouth.clone(), into.clone(), 1500, 1.3, i ? { spin:true, follow:false } : { color:0x3A3A3A, spin:true });
+      await flight(c, mouth.clone(), into.clone(), 1500, 1.3, i ? { spin:true } : { color:0x3A3A3A, spin:true });
     }));
     await wait(250);
   }
   shot(SHOT.split, 2200);
-  const shares = [["searchco", p.supplier, 91, 1.7, 0], ["forage", p.forage, 4, 0.85, 320], ["scout", p.app, 5, 0.95, 640]];
+  // Each share starts its drop as the one before leaves its pad, so one coin falls at a time.
+  const shares = [["searchco", p.supplier, 91, 1.7, 0], ["forage", p.forage, 4, 0.85, 1500], ["scout", p.app, 5, 0.95, 3000]];
   await Promise.all(shares.map(async ([k, v, pct, sc, delay]) => {
     await wait(delay);
     const c = gl ? bigCoin(NODES[k].color, sc) : null; if (c) tagFor(c, `${pct}% ${usd(v)}`, NODES[k].css);
@@ -1532,7 +1521,7 @@ async function rain() {
       // Straight down out of the canopy first (the control point sits below the start), then a swoop to the party.
       const from = canopy("forage", 0.4), to = spot(k), ctrl = from.clone().setY(from.y - 2.6).lerp(to, 0.15);
       scene.add(t);
-      await flight(t, null, null, 1700, 0, { curve:new THREE.QuadraticBezierCurve3(from, ctrl, to), color:PURPLE, spin:true, follow:false }); // the chapter shot already frames the tree and all three payees
+      await flight(t, null, null, 1700, 0, { curve:new THREE.QuadraticBezierCurve3(from, ctrl, to), color:PURPLE, spin:true }); // the chapter shot already frames the tree and all three payees
     }));
     await wait(500);
   }
@@ -1554,7 +1543,6 @@ async function stopLoop() {
   if (!looping) return;
   looping = false; quick = true;
   for (const f of flights.splice(0)) { if (f.trail) { scene.remove(f.trail); for (const t of f.trail.children) { t.geometry.dispose(); t.material.dispose(); } } if (!f.keep) kill(f.mesh); f.res(); }
-  chase = null;
   await loopRun; loopRun = null;
   quick = false; pace = BASE_PACE; reset();
 }
@@ -1608,7 +1596,7 @@ async function watch() {
     if (ch === 7 && s.step === 2) { busy = true; render(); await settle(); busy = false; phase = null; render(); }
     await hold(reduced ? 1200 : CH[ch].hold);
     if (!playing) break;
-    turn(ch + 1); await goTo(ch + 1);
+    await turn(ch + 1); await goTo(ch + 1);
   }
   stopWatch();
 }
@@ -1706,8 +1694,15 @@ function render() {
 // several chapters at once is caught up instantly (goTo's quick mode), then shown the chapter they landed on.
 const secs = [...document.querySelectorAll(".track .ch")];
 const windows = [$("hero"), $("track")], hint = $("hint");
-function turn(i) {
+// Turning one page forward plays that page's move here first, under this chapter's camera and card, then scrolls.
+// A jump of two or more pages catches up instantly in goTo instead.
+async function turn(i) {
   i = Math.max(0, Math.min(CH.length - 1, i));
+  if (i === ch + 1 && !busy && s.step < NEED[i]) {
+    busy = true; render();
+    while (s.step < NEED[i]) await advance();
+    busy = false; phase = null; render();
+  }
   secs[i].scrollIntoView({ behavior:reduced ? "auto" : "smooth", block:"start" });
 }
 let want = 0, syncing = false;
